@@ -6,6 +6,7 @@ import os
 import time
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import openmm as mm
 import openmm.unit as u
 from sys import stdout
@@ -13,6 +14,7 @@ from openmm.app import PDBFile, PDBxFile, ForceField, Simulation, PDBReporter, P
 from create_insilico import *
 from ChromMovie_utils import *
 from points_io import save_points_as_pdb
+from reporter_utils import get_energy, get_mean_Rg, get_bb_violation, get_sc_violation, get_ff_violation
 import shutil
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -88,7 +90,7 @@ class MD_simulation:
         print('Minimizing energy...')
         platform = mm.Platform.getPlatformByName(self.platform)
         self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
-        self.simulation.reporters.append(StateDataReporter(stdout, (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
+        self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
         # self.simulation.reporters.append(DCDReporter(self.output_path+'/stochastic_MD.dcd', 5))
         self.simulation.context.setPositions(pdb.positions)
         current_platform = self.simulation.context.getPlatform()
@@ -120,7 +122,7 @@ class MD_simulation:
                     self.add_evforce(r=params[0], strength=self.force_params[1]*t)
                     self.system.removeForce(self.ff_force_index)
                     self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
-            self.plot_reporter()  
+            self.plot_reporter()
             end = time.time()
             elapsed = end - start
 
@@ -204,12 +206,13 @@ class MD_simulation:
         self.add_between_frame_forces(r=params[6], strength=params[7])
 
     def plot_reporter(self):
+        print("Creating a simulation report...")
         "Creates a pdf file with reporter plots."
         pdf = FPDF()
         # Page 0
         pdf.add_page()
         pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 12, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
@@ -227,7 +230,7 @@ class MD_simulation:
         # Page 1
         pdf.add_page()
         pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 12, text="Forces functional forms", new_x="LMARGIN", new_y="NEXT")
@@ -254,14 +257,67 @@ class MD_simulation:
         # Page 2
         pdf.add_page()
         pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 12, text="Simulation metrics", new_x="LMARGIN", new_y="NEXT")
 
+        cmap = mpl.colormaps['coolwarm']
+
+        df_energy = get_energy(os.path.join(self.output_path, "energy.csv"))
         fig, ax = plt.subplots(3, 2, figsize=(10, 12), dpi=300)
-        ax[0][0].plot(np.random.rand(100))
-        ax[1][0].plot(np.linspace(1, 10, 100))
+        ax[0][0].set_title("Energy")
+        ax[0][0].set_ylabel("kJ/mole")
+        ax[0][0].set_xlabel("simulation step")
+        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Potential Energy (kJ/mole)"], label="Potential E")
+        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Total Energy (kJ/mole)"], label="Total E")
+        ax[0][0].legend()
+
+        ax[0][1].set_title("Temperature")
+        ax[0][1].set_ylabel("K")
+        ax[0][1].set_xlabel("simulation step")
+        ax[0][1].plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
+
+        df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_pdb"))
+        ax[1][0].set_title("Mean radius of gyration")
+        ax[1][0].set_ylabel("Rg")
+        ax[1][0].set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
+            ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax[1][0].legend()
+
+        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[2])
+        ax[1][1].set_title("Mean backbone distance violation")
+        ax[1][1].set_ylabel("")
+        ax[1][1].set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_bb[df_bb["frame"]==frame].sort_values("step")
+            ax[1][1].plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax[1][1].axhline(0, linestyle='--', c="black")
+        ax[1][1].legend()
+
+        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[4], self.heatmaps)
+        ax[2][0].set_title("Mean sc contact violation")
+        ax[2][0].set_ylabel("")
+        ax[2][0].set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_sc[df_sc["frame"]==frame].sort_values("step")
+            ax[2][0].plot(df_temp["step"], df_temp["pval"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax[2][0].axhline(0, linestyle='--', c="black")
+        ax[2][0].legend()
+
+        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[6])
+        ax[2][1].set_title("Mean frame force violation")
+        ax[2][1].set_ylabel("")
+        ax[2][1].set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
+            ax[2][1].plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        # ax[2][1].axhline(0, linestyle='--', c="black")
+        ax[2][1].legend()
+
+        plt.tight_layout()
         canvas = FigureCanvas(fig)
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
