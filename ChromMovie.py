@@ -94,6 +94,42 @@ class MD_simulation:
         if write_files and os.path.exists(frame_path_pdb): shutil.rmtree(frame_path_pdb)
         if write_files and not os.path.exists(frame_path_pdb): os.makedirs(frame_path_pdb)
         
+        self.save_state(frame_path_npy, frame_path_pdb, step=0)
+
+        # Run molecular dynamics simulation
+        if run_MD:
+            print('Running molecular dynamics (wait for 10 steps)...')
+            start = time.time()
+            for i in range(1, self.N_steps):
+                self.simulation.step(sim_step)
+                if i%self.step==0 and i>self.burnin*self.step:
+                    # self.state = self.simulation.context.getState(getPositions=True)
+                    if write_files:
+                        self.save_state(frame_path_npy, frame_path_pdb, step=i)
+                        # positions = self.state.getPositions()
+                        # for frame in range(self.n):
+                        #     x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
+                        #     y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
+                        #     z = [positions[i].z for i in range(frame*self.m, (frame+1)*self.m)]
+                        #     frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
+                        #                                  np.array(y).reshape((len(y), 1)), 
+                        #                                  np.array(z).reshape((len(z), 1))))
+                        #     np.save(os.path.join(frame_path_npy, "step{}_frame{}.npy".format(str(i).zfill(3), str(frame).zfill(3))),
+                        #             frame_positions)
+                        #     save_points_as_pdb(frame_positions, 
+                        #                        os.path.join(frame_path_pdb, "step{}_frame{}.pdb".format(str(i).zfill(3), str(frame).zfill(3))),
+                        #                        verbose=False)
+                        # time.sleep(1)
+                # updating the repulsive force strength:
+
+            end = time.time()
+            elapsed = end - start
+
+            print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
+
+
+    def save_state(self, path_npy, path_pdb, step):
+        "Saves the current state of the simulation in pdb files and npy arrays. Parameters step and frame specify the name of the file"
         self.state = self.simulation.context.getState(getPositions=True)
         positions = self.state.getPositions()
         for frame in range(self.n):
@@ -103,40 +139,12 @@ class MD_simulation:
             frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
                                             np.array(y).reshape((len(y), 1)), 
                                             np.array(z).reshape((len(z), 1))))
-            np.save(os.path.join(frame_path_npy, "step{}_frame{}.npy".format(str(0).zfill(3), str(frame).zfill(3))),
+            np.save(os.path.join(path_npy, "step{}_frame{}.npy".format(str(step).zfill(3), str(frame).zfill(3))),
                     frame_positions)
             save_points_as_pdb(frame_positions, 
-                                os.path.join(frame_path_pdb, "step{}_frame{}.pdb".format(str(0).zfill(3), str(frame).zfill(3))),
+                                os.path.join(path_pdb, "step{}_frame{}.pdb".format(str(step).zfill(3), str(frame).zfill(3))),
                                 verbose=False)
-
-        # Run molecular dynamics simulation
-        if run_MD:
-            print('Running molecular dynamics (wait for 10 steps)...')
-            start = time.time()
-            for i in range(1, self.N_steps):
-                self.simulation.step(sim_step)
-                if i%self.step==0 and i>self.burnin*self.step:
-                    self.state = self.simulation.context.getState(getPositions=True)
-                    if write_files:
-                        positions = self.state.getPositions()
-                        for frame in range(self.n):
-                            x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
-                            y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
-                            z = [positions[i].z for i in range(frame*self.m, (frame+1)*self.m)]
-                            frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
-                                                         np.array(y).reshape((len(y), 1)), 
-                                                         np.array(z).reshape((len(z), 1))))
-                            np.save(os.path.join(frame_path_npy, "step{}_frame{}.npy".format(str(i).zfill(3), str(frame).zfill(3))),
-                                    frame_positions)
-                            save_points_as_pdb(frame_positions, 
-                                               os.path.join(frame_path_pdb, "step{}_frame{}.pdb".format(str(i).zfill(3), str(frame).zfill(3))),
-                                               verbose=False)
-                        # time.sleep(1)
-            end = time.time()
-            elapsed = end - start
-
-            print(f'Everything is done! Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
-
+            
 
     def add_evforce(self, r=0.6, strength=4e1):
         'Leonard-Jones potential for excluded volume'
@@ -149,7 +157,7 @@ class MD_simulation:
         for frame in range(self.n):
             for _ in range(self.m):
                 self.ev_force.addParticle([frame])
-        self.system.addForce(self.ev_force)
+        self.ev_force_index = self.system.addForce(self.ev_force)
 
     def add_backbone(self, r=0.6, strength=1e4):
         'Harmonic bond force between succesive beads'
@@ -157,7 +165,7 @@ class MD_simulation:
         for frame in range(self.n):
             for i in range(self.m-1):
                 self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1, length=r, k=strength)
-        self.system.addForce(self.bond_force)
+        self.bb_force_index = self.system.addForce(self.bond_force)
 
     def add_schic_contacts(self, r=0.3, strength=1e5):
         'Harmonic bond force between loci connected by a scHi-C contact'
@@ -167,17 +175,7 @@ class MD_simulation:
                 for j in range(i+1, self.m):
                     if self.heatmaps[frame][i, j] == 1:
                         self.sc_force.addBond(frame*self.m + i, frame*self.m + j, length=r, k=strength)
-            # self.sc_force.addBond(frame*self.m, frame*self.m+2, length=0.2*np.sqrt(2), k=param)
-            # self.sc_force.addBond(frame*self.m+1, frame*self.m + 3, length=0.2*np.sqrt(2), k=param)
-            # self.sc_force.addBond(frame*self.m+4, frame*self.m+6, length=0.2*np.sqrt(2), k=param)
-            # self.sc_force.addBond(frame*self.m+5, frame*self.m+7, length=0.2*np.sqrt(2), k=param)
-
-            # self.sc_force.addBond(frame*self.m, frame*self.m+5, length=0.2*np.sqrt(3), k=param)
-            # self.sc_force.addBond(frame*self.m+2, frame*self.m+7, length=0.2*np.sqrt(3), k=param)
-            # self.sc_force.addBond(frame*self.m+3, frame*self.m+6, length=0.2*np.sqrt(3), k=param)
-            # self.sc_force.addBond(frame*self.m+1, frame*self.m+4, length=0.2*np.sqrt(3), k=param)
-            
-        self.system.addForce(self.sc_force)
+        self.sc_force_index = self.system.addForce(self.sc_force)
 
     def add_between_frame_forces(self, r=0.4, strength=1e3):
         'Harmonic bond force between same loci from different frames'
@@ -187,7 +185,7 @@ class MD_simulation:
         for frame in range(self.n-1):
             for locus in range(self.m):
                 self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus)
-        self.system.addForce(self.frame_force)
+        self.ff_force_index = self.system.addForce(self.frame_force)
         
 
     def add_forcefield(self):
