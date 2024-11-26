@@ -15,6 +15,10 @@ from ChromMovie_utils import *
 from points_io import save_points_as_pdb
 import shutil
 
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+from fpdf import FPDF
+from PIL import Image
+
 
 class MD_simulation:
     def __init__(self, heatmaps, output_path, N_steps, burnin, MC_step, platform, force_params):
@@ -72,8 +76,13 @@ class MD_simulation:
 
         # Add forces
         print('Adding forces...')
-        self.add_forcefield()
-        print('Forces added\n')
+        free_start = True
+        if free_start:
+            params = self.force_params.copy()
+            params[1] = params[7] = 0
+            self.add_forcefield(params)
+        else:
+            self.add_forcefield(self.force_params)
 
         # Minimize energy
         print('Minimizing energy...')
@@ -94,34 +103,24 @@ class MD_simulation:
         if write_files and os.path.exists(frame_path_pdb): shutil.rmtree(frame_path_pdb)
         if write_files and not os.path.exists(frame_path_pdb): os.makedirs(frame_path_pdb)
         
-        self.save_state(frame_path_npy, frame_path_pdb, step=0)
-
         # Run molecular dynamics simulation
+        self.save_state(frame_path_npy, frame_path_pdb, step=0)
         if run_MD:
             print('Running molecular dynamics (wait for 10 steps)...')
             start = time.time()
             for i in range(1, self.N_steps):
                 self.simulation.step(sim_step)
                 if i%self.step==0 and i>self.burnin*self.step:
-                    # self.state = self.simulation.context.getState(getPositions=True)
-                    if write_files:
-                        self.save_state(frame_path_npy, frame_path_pdb, step=i)
-                        # positions = self.state.getPositions()
-                        # for frame in range(self.n):
-                        #     x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
-                        #     y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
-                        #     z = [positions[i].z for i in range(frame*self.m, (frame+1)*self.m)]
-                        #     frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
-                        #                                  np.array(y).reshape((len(y), 1)), 
-                        #                                  np.array(z).reshape((len(z), 1))))
-                        #     np.save(os.path.join(frame_path_npy, "step{}_frame{}.npy".format(str(i).zfill(3), str(frame).zfill(3))),
-                        #             frame_positions)
-                        #     save_points_as_pdb(frame_positions, 
-                        #                        os.path.join(frame_path_pdb, "step{}_frame{}.pdb".format(str(i).zfill(3), str(frame).zfill(3))),
-                        #                        verbose=False)
-                        # time.sleep(1)
-                # updating the repulsive force strength:
-
+                    self.save_state(frame_path_npy, frame_path_pdb, step=i)
+                    # time.sleep(1)
+                # updating the repulsive and frame force strength:
+                if free_start:
+                    t = (i+1)/self.N_steps
+                    self.system.removeForce(self.ev_force_index)
+                    self.add_evforce(r=params[0], strength=self.force_params[1]*t)
+                    self.system.removeForce(self.ff_force_index)
+                    self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
+            self.plot_reporter()  
             end = time.time()
             elapsed = end - start
 
@@ -145,7 +144,6 @@ class MD_simulation:
                                 os.path.join(path_pdb, "step{}_frame{}.pdb".format(str(step).zfill(3), str(frame).zfill(3))),
                                 verbose=False)
             
-
     def add_evforce(self, r=0.6, strength=4e1):
         'Leonard-Jones potential for excluded volume'
         self.ev_force = mm.CustomNonbondedForce('epsilon*(r-r_opt)^2*step(r_opt-r)*delta(frame1-frame2)')
@@ -187,8 +185,7 @@ class MD_simulation:
                 self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus)
         self.ff_force_index = self.system.addForce(self.frame_force)
         
-
-    def add_forcefield(self):
+    def add_forcefield(self, params):
         '''
         Here is the definition of the forcefield.
 
@@ -201,11 +198,76 @@ class MD_simulation:
         # self.add_schic_contacts(r=0.1, strength=1e5)
         # self.add_between_frame_forces(r=0.1, strength=1e4)
 
-        self.add_evforce(r=self.force_params[0], strength=self.force_params[1])
-        self.add_backbone(r=self.force_params[2], strength=self.force_params[3])
-        self.add_schic_contacts(r=self.force_params[4], strength=self.force_params[5])
-        self.add_between_frame_forces(r=self.force_params[6], strength=self.force_params[7])
+        self.add_evforce(r=params[0], strength=params[1])
+        self.add_backbone(r=params[2], strength=params[3])
+        self.add_schic_contacts(r=params[4], strength=params[5])
+        self.add_between_frame_forces(r=params[6], strength=params[7])
 
+    def plot_reporter(self):
+        "Creates a pdf file with reporter plots."
+        pdf = FPDF()
+        # Page 0
+        pdf.add_page()
+        pdf.set_font('helvetica', size=20)
+        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 12, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
+
+        with pdf.table(col_widths=(30, 30, 120)) as table:
+            row = table.row()
+            row.cell("Parameter")
+            row.cell("value")
+            row.cell("Parameter description")
+            for data_row in range(10):
+                row = table.row()
+                for datum in ["parameter {}".format(str(data_row)), str(np.random.randint(4)), "description"]:
+                    row.cell(datum)
+
+        # Page 1
+        pdf.add_page()
+        pdf.set_font('helvetica', size=20)
+        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 12, text="Forces functional forms", new_x="LMARGIN", new_y="NEXT")
+
+        fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
+        ax[0].plot(np.random.rand(100))
+        ax[1].plot(np.linspace(1, 10, 100))
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
+        pdf.image(img, w=pdf.epw)
+
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 12, text="Forces coefficients", new_x="LMARGIN", new_y="NEXT")
+
+        fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
+        ax[0].plot(np.random.rand(100))
+        ax[1].plot(np.linspace(1, 10, 100))
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
+        pdf.image(img, w=pdf.epw)
+
+        # Page 2
+        pdf.add_page()
+        pdf.set_font('helvetica', size=20)
+        pdf.cell(0, 20, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_font('helvetica', size=12)
+        pdf.cell(0, 12, text="Simulation metrics", new_x="LMARGIN", new_y="NEXT")
+
+        fig, ax = plt.subplots(3, 2, figsize=(10, 12), dpi=300)
+        ax[0][0].plot(np.random.rand(100))
+        ax[1][0].plot(np.linspace(1, 10, 100))
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
+        pdf.image(img, w=pdf.epw)
+
+        pdf.output(os.path.join(self.output_path, "simulation_report.pdf"))
         
 if __name__ == "__main__":
     # m = 40

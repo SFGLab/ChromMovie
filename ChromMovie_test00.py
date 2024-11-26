@@ -106,7 +106,7 @@ if __name__ == "__main__":
     heatmaps = get_hicmaps(structure_set, n_contacts=50)
 
     df_results = pd.DataFrame(columns = ["base_d", "k_ev", "k_bb", "k_sc", "k_ff"] +[f"MW_pval_frame{i}" for i in range(n)])
-    n_tests = 10000
+    n_tests = 1
     for i in range(n_tests):
         print(f"------Running test no {i}------")
         # heatmaps = [add_noise(mat, 5) for mat in heatmaps_orig]
