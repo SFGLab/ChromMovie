@@ -79,11 +79,11 @@ def dist(p1: np.ndarray, p2: np.ndarray) -> float:
 
 def random_versor() -> np.ndarray:
     """Losuje wersor"""
-    x = np.random.uniform(-1, 1)
-    y = np.random.uniform(-1, 1)
-    z = np.random.uniform(-1, 1)
-    d = (x ** 2 + y ** 2 + z ** 2) ** 0.5
-    return np.array([x / d, y / d, z / d])
+    x = np.random.normal()
+    y = np.random.normal()
+    z = np.random.normal()
+    d = (x**2 + y**2 + z**2)**0.5
+    return np.array([x/d, y/d, z/d])
 
 def self_avoiding_random_walk(n: int, step: float = 1.0, bead_radius: float = 0.5, epsilon: float = 0.001, two_dimensions=False) -> np.ndarray:
     potential_new_step = [0, 0, 0]
