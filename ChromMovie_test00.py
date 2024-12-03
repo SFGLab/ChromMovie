@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from points_io import point_reader
+from points_io import point_reader, save_points_as_pdb
 from scipy.spatial import distance_matrix
 from scipy.stats import wilcoxon, mannwhitneyu
 import openmm as mm
@@ -92,18 +92,26 @@ def get_qcp_fit_model(image_structure, gd_structure):
 
 
 if __name__ == "__main__":
-    test_no = 16
+    test_no = 17
 
     n = 10
     m = 20
 
     out_path = "./results/tests/test{}/".format(str(test_no).zfill(2))
     N_steps = 100
-    sim_step = 10  
+    sim_step = 20
     
     # heatmaps = [create_random_matrix(m, 40) for i in range(n)]
-    structure_set = get_structure_01(frames=n, m=m)
+    structure_set = get_structure_02(frames=n, m=m)
     heatmaps = get_hicmaps(structure_set, n_contacts=50)
+
+    # Saving the ground truth structure:
+    path_init = os.path.join(out_path, "ground_truth")
+    if os.path.exists(path_init): shutil.rmtree(path_init)
+    if not os.path.exists(path_init): os.makedirs(path_init)
+    for frame in range(n):
+        save_points_as_pdb(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.pdb"))
+
 
     df_results = pd.DataFrame(columns = ["base_d", "k_ev", "k_bb", "k_sc", "k_ff"] +[f"MW_pval_frame{i}" for i in range(n)])
     n_tests = 1
@@ -112,11 +120,11 @@ if __name__ == "__main__":
         # heatmaps = [add_noise(mat, 5) for mat in heatmaps_orig]
 
         base_d = 1 #10**np.random.uniform(-2, 0)
-        k_ev = 1e4 # 10**np.random.uniform(0, 5)
-        k_bb = 1e3 #10**np.random.uniform(0, 5)
-        k_sc = 1e3 #10**np.random.uniform(0, 5)
-        k_ff = 1e4 #10**np.random.uniform(0, 6)
-        f_params = [base_d, k_ev, base_d, k_bb, base_d, k_sc, base_d, k_ff]
+        k_ev = 1e0 # 10**np.random.uniform(0, 5)
+        k_bb = 1e5 #10**np.random.uniform(0, 5)
+        k_sc = 1e0 #10**np.random.uniform(0, 5)
+        k_ff = 1e0 #10**np.random.uniform(0, 6)
+        f_params = [base_d*3, k_ev, base_d, k_bb, base_d, k_sc, base_d/10, k_ff]
 
         md = MD_simulation(heatmaps, out_path, N_steps=N_steps, burnin=5, MC_step=1, platform='OpenCL', force_params=f_params)
         md.run_pipeline(write_files=True, plots=True, sim_step=sim_step)

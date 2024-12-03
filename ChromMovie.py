@@ -63,12 +63,17 @@ class MD_simulation:
         '''
         # Define initial structure
         print('Building initial structure...')
-        points_init_frame = self_avoiding_random_walk(self.m, 0.2, 0.001)
+        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[1], bead_radius=self.force_params[1]/2)
         # points_init_frame = np.random.normal(points_init_frame, 0.01)
         points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
 
         # points = self_avoiding_random_walk(self.m*self.n, 2, 0.001)
-        write_mmcif(points, self.output_path+'/init_struct.cif')
+        # write_mmcif(points, self.output_path+'/init_struct.cif')
+        path_init = os.path.join(self.output_path, "init")
+        if os.path.exists(path_init): shutil.rmtree(path_init)
+        if not os.path.exists(path_init): os.makedirs(path_init)
+        for frame in range(self.n):
+            save_points_as_pdb(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.pdb"))
 
         # Define System
         pdb = PDBxFile(self.output_path+'/init_struct.cif')
@@ -217,15 +222,43 @@ class MD_simulation:
         pdf.set_font('helvetica', size=12)
         pdf.cell(0, 12, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
 
-        with pdf.table(col_widths=(30, 30, 120)) as table:
+        with pdf.table(col_widths=(40, 30, 120)) as table:
             row = table.row()
             row.cell("Parameter")
             row.cell("value")
             row.cell("Parameter description")
-            for data_row in range(10):
-                row = table.row()
-                for datum in ["parameter {}".format(str(data_row)), str(np.random.randint(4)), "description"]:
-                    row.cell(datum)
+            row = table.row()
+            row.cell("force_params[0]")
+            row.cell(str(self.force_params[0]))
+            row.cell("Excluded Volume (EV) minimal distance")
+            row = table.row()
+            row.cell("force_params[1]")
+            row.cell(str(self.force_params[1]))
+            row.cell("Excluded Volume (EV) force coefficient")
+            row = table.row()
+            row.cell("force_params[2]")
+            row.cell(str(self.force_params[2]))
+            row.cell("Backbone (BB) optimal distance")
+            row = table.row()
+            row.cell("force_params[3]")
+            row.cell(str(self.force_params[3]))
+            row.cell("Backbone (BB) force coefficient")
+            row = table.row()
+            row.cell("force_params[4]")
+            row.cell(str(self.force_params[4]))
+            row.cell("Single cell contact (SC) optimal distance")
+            row = table.row()
+            row.cell("force_params[5]")
+            row.cell(str(self.force_params[5]))
+            row.cell("Single cell contact (SC) force coefficient")
+            row = table.row()
+            row.cell("force_params[6]")
+            row.cell(str(self.force_params[6]))
+            row.cell("Frame force (FF) optimal distance")
+            row = table.row()
+            row.cell("force_params[7]")
+            row.cell(str(self.force_params[7]))
+            row.cell("Frame force (FF) coefficient")
 
         # Page 1
         pdf.add_page()
