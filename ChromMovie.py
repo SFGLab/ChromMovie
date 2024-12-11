@@ -184,7 +184,16 @@ class MD_simulation:
 
     def add_between_frame_forces(self, r=0.4, strength=1e3):
         'Harmonic bond force between same loci from different frames'
-        self.frame_force = mm.CustomBondForce('epsilon2*(r-r_thr)^2*step(r-r_thr)')
+        # self.frame_force = mm.CustomBondForce('epsilon2*(r-r_thr)^2*step(r-r_thr)') # harmonic with flat beginning (only attractive part)
+        # self.frame_force = mm.CustomBondForce('epsilon2*(1-exp(-(r-r_thr)^2/2/r_thr^2))') # gaussian bond
+        self.frame_force = mm.CustomBondForce('epsilon2*((1-exp(-(r-r_l)^2/2/r_l^2))*step(r_l-r) + (1-exp(-(r-r_u)^2/2/r_l^2))*step(r-r_u))') # flat-bottom (r_l, r_u) gaussian bond
+        # self.frame_force = mm.CustomBondForce('epsilon2*((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))') # flat-bottom (r_l, r_u) bond
+        # self.frame_force = mm.CustomBondForce('epsilon2*((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)*step(r_u+d-r) + d*(2*r-d-2*r_u)*step(r-r_u-d))') # flat-bottom (r_l, r_u) bond with linear end after r_u+d
+
+        self.frame_force.addGlobalParameter('r_u', defaultValue=r*0.5)
+        self.frame_force.addGlobalParameter('r_l', defaultValue=r*1.5)
+        # self.frame_force.addGlobalParameter('d', defaultValue=r*0.2)
+
         self.frame_force.addGlobalParameter('epsilon2', defaultValue=strength)
         self.frame_force.addGlobalParameter('r_thr', defaultValue=r)
         for frame in range(self.n-1):
