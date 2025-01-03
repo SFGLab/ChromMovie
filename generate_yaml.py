@@ -19,6 +19,14 @@ CONFIG_PARAMETERS = {
             'value': 100,
             'description': 'Size of scHi-C frames to be generated (number of beads). Only applicable if input==None.'
         },
+        'n_contacts': {
+            'value': 50,
+            'description': 'Number of contacts to be drawn from each in silico structure. Only applicable if input==None.'
+        },
+        'artificial_structure': {
+            'value': 1,
+            'description': 'Index of the in silico structure to be generated as simulation input.\nOnly applicable if input==None. Available structure indices: TODO'
+        }
     },
 
     'simulation': {
@@ -35,15 +43,20 @@ CONFIG_PARAMETERS = {
             'description': 'TODO'
         },
         'MC_step': {
-            'value': 10,
+            'value': 1,
             'description': 'TODO'
-        }
+        },
+        'sim_step': {
+            'value': 20,
+            'description': 'TODO'
+        },
+        
     },
 
     'forcefield': {
         'ev_formula': {
             'value': 'harmonic',
-            'description': "Type of the Excluded Volume (EV) repulsion. Available types: TODO"
+            'description': 'Type of the Excluded Volume (EV) repulsion. Available types: TODO'
         },
         'ev_min_dist': {
             'value': 1.0,
@@ -60,7 +73,7 @@ CONFIG_PARAMETERS = {
 
         'bb_formula': {
             'value': 'harmonic',
-            'description': "Type of the Backbone (BB) potential. Available types: TODO"
+            'description': 'Type of the Backbone (BB) potential. Available types: TODO'
         },
         'bb_opt_dist': {
             'value': 1.0,
@@ -82,7 +95,7 @@ CONFIG_PARAMETERS = {
 
         'sc_formula': {
             'value': 'harmonic',
-            'description': "Type of the Single cell contact (SC) potential. Available types: TODO"
+            'description': 'Type of the Single cell contact (SC) potential. Available types: TODO'
         },
         'sc_opt_dist': {
             'value': 1.0,
@@ -103,7 +116,7 @@ CONFIG_PARAMETERS = {
 
         'ff_formula': {
             'value': 'harmonic',
-            'description': "Type of the Frame force (FF) potential. Available types: TODO"
+            'description': 'Type of the Frame force (FF) potential. Available types: TODO'
         },
         'ff_opt_dist': {
             'value': 1.0,
@@ -163,10 +176,10 @@ if __name__ == "__main__":
     # Example of user-specified parameters:
     user_specified_config = {
         'general': {
-            'output': 'results2'
+            'output': 'results'
         },
         'simulation': {
-            'ev_min_dist': 5
+            'ev_min_dist': 2
         },
         'forcefield': {
             

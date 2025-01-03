@@ -6,11 +6,18 @@ descriptions:
     n: Number of scHi-C frames to be generated. Only applicable if input==None.
     m: Size of scHi-C frames to be generated (number of beads). Only applicable if
       input==None.
+    n_contacts: Number of contacts to be drawn from each in silico structure. Only
+      applicable if input==None.
+    artificial_structure: 'Index of the in silico structure to be generated as simulation
+      input.
+
+      Only applicable if input==None. Available structure indices: TODO'
   simulation:
     platform: TODO
     N_steps: TODO
     burnin: TODO
     MC_step: TODO
+    sim_step: TODO
   forcefield:
     ev_formula: 'Type of the Excluded Volume (EV) repulsion. Available types: TODO'
     ev_min_dist: Excluded Volume (EV) minimal distance
@@ -67,14 +74,17 @@ descriptions:
       If False the coefficient will have stable value of ff_coef.'
 general:
   input: null
-  output: results2
+  output: results
   n: 10
   m: 100
+  n_contacts: 50
+  artificial_structure: 1
 simulation:
   platform: OpenCL
   N_steps: 100
   burnin: 5
-  MC_step: 10
+  MC_step: 1
+  sim_step: 20
 forcefield:
   ev_formula: harmonic
   ev_min_dist: 1.0
