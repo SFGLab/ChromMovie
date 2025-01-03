@@ -42,8 +42,8 @@ class MD_simulation:
 
         self.heatmaps = heatmaps
 
-        if not os.path.exists(os.path.dirname(output_path)):
-            os.makedirs(os.path.dirname(output_path))
+        if not os.path.exists(output_path):
+            os.makedirs(output_path)
         self.output_path = output_path
 
         self.N_steps = N_steps
@@ -68,7 +68,7 @@ class MD_simulation:
         points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
 
         # points = self_avoiding_random_walk(self.m*self.n, 2, 0.001)
-        # write_mmcif(points, self.output_path+'/init_struct.cif')
+        write_mmcif(points, self.output_path+'/init_struct.cif')
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
