@@ -3,9 +3,22 @@ import yaml
 # Default configuration with descriptions
 CONFIG_PARAMETERS = {
     'general':{
+        'input': {
+            'value': None,
+            'description': 'Folder containing input scHi-C maps in npy format. If \'None\' simulated scHi-C maps are going to be used.'
+        },
         'output': {
             'value': 'results',
-            'description': 'Output folder for storing simulation results'}
+            'description': 'Output folder for storing simulation results'
+        },
+        'n': {
+            'value': 10,
+            'description': 'Number of scHi-C frames to be generated. Only applicable if input==None.'
+        },
+        'm': {
+            'value': 100,
+            'description': 'Size of scHi-C frames to be generated (number of beads). Only applicable if input==None.'
+        },
     },
 
     'simulation': {
@@ -147,7 +160,7 @@ def generate_yaml_config(output_file, user_config=None):
     print(f"Configuration file '{output_file}' generated successfully.")
 
 if __name__ == "__main__":
-    # Example of user-specified parameters
+    # Example of user-specified parameters:
     user_specified_config = {
         'general': {
             'output': 'results2'

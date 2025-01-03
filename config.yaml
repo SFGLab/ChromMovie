@@ -1,6 +1,11 @@
 descriptions:
   general:
+    input: Folder containing input scHi-C maps in npy format. If 'None' simulated
+      scHi-C maps are going to be used.
     output: Output folder for storing simulation results
+    n: Number of scHi-C frames to be generated. Only applicable if input==None.
+    m: Size of scHi-C frames to be generated (number of beads). Only applicable if
+      input==None.
   simulation:
     platform: TODO
     N_steps: TODO
@@ -61,7 +66,10 @@ descriptions:
 
       If False the coefficient will have stable value of ff_coef.'
 general:
+  input: null
   output: results2
+  n: 10
+  m: 100
 simulation:
   platform: OpenCL
   N_steps: 100
