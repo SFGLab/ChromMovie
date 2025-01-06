@@ -178,8 +178,9 @@ class MD_simulation:
         for frame in range(self.n):
             for i in range(self.m):
                 for j in range(i+1, self.m):
-                    if self.heatmaps[frame][i, j] == 1:
-                        self.sc_force.addBond(frame*self.m + i, frame*self.m + j, length=r, k=strength)
+                    m_ij = self.heatmaps[frame][i, j]
+                    if m_ij > 0:
+                        self.sc_force.addBond(frame*self.m + i, frame*self.m + j, length=r/m_ij**(1/3), k=strength)
         self.sc_force_index = self.system.addForce(self.sc_force)
 
     def add_between_frame_forces(self, r=0.4, strength=1e3):
