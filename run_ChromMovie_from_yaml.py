@@ -14,9 +14,9 @@ def validate_input_yaml_parameters(m_config, s_config, f_config):
     # TODO
     return 0
 
-def main():
+def main(config_path: str='config.yaml'):
     # Load configuration
-    config = load_config('config.yaml')
+    config = load_config(config_path)
     
     # Access configuration values
     main_config = config['general']
@@ -55,4 +55,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main('config.yaml')
