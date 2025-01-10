@@ -113,26 +113,48 @@ class MD_simulation:
         # Run molecular dynamics simulation
         self.save_state(frame_path_npy, frame_path_pdb, step=0)
         if run_MD:
-            print('Running molecular dynamics (wait for 10 steps)...')
-            start = time.time()
-            for i in range(1, self.N_steps):
-                self.simulation.step(sim_step)
-                if i%self.step==0 and i>self.burnin*self.step:
-                    self.save_state(frame_path_npy, frame_path_pdb, step=i)
-                    # time.sleep(1)
-                # updating the repulsive and frame force strength:
-                if free_start:
-                    t = (i+1)/self.N_steps
-                    self.system.removeForce(self.ev_force_index)
-                    self.add_evforce(r=params[0], strength=self.force_params[1]*t)
-                    self.system.removeForce(self.ff_force_index)
-                    self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
-            self.plot_reporter()
-            end = time.time()
-            elapsed = end - start
+            print('Running molecular dynamics ...')
 
-            print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
+            self.simulate_resolution(resolution=1, sim_step=sim_step, 
+                                     frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
+                                     params=params, free_start=free_start)
+            # start = time.time()
+            # for i in range(1, self.N_steps):
+            #     self.simulation.step(sim_step)
+            #     if i%self.step==0 and i>self.burnin*self.step:
+            #         self.save_state(frame_path_npy, frame_path_pdb, step=i)
+            #     # updating the repulsive and frame force strength:
+            #     if free_start:
+            #         t = (i+1)/self.N_steps
+            #         self.system.removeForce(self.ev_force_index)
+            #         self.add_evforce(r=params[0], strength=self.force_params[1]*t)
+            #         self.system.removeForce(self.ff_force_index)
+            #         self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
+            # self.plot_reporter()
+            # end = time.time()
+            # elapsed = end - start
 
+            # print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
+
+
+    def simulate_resolution(self, resolution: float, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
+        start = time.time()
+        for i in range(1, self.N_steps):
+            self.simulation.step(sim_step)
+            if i%self.step==0 and i>self.burnin*self.step:
+                self.save_state(frame_path_npy, frame_path_pdb, step=i)
+            # updating the repulsive and frame force strength:
+            if free_start:
+                t = (i+1)/self.N_steps
+                self.system.removeForce(self.ev_force_index)
+                self.add_evforce(r=params[0], strength=self.force_params[1]*t)
+                self.system.removeForce(self.ff_force_index)
+                self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
+        self.plot_reporter()
+        end = time.time()
+        elapsed = end - start
+
+        print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
 
     def save_state(self, path_npy, path_pdb, step):
         "Saves the current state of the simulation in pdb files and npy arrays. Parameters step and frame specify the name of the file"
