@@ -10,6 +10,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import openmm as mm
 import openmm.unit as u
+from simtk.openmm import Vec3
+from simtk.openmm.app import Topology, Element
 from sys import stdout
 from openmm.app import PDBFile, PDBxFile, ForceField, Simulation, PDBReporter, PDBxReporter, DCDReporter, StateDataReporter, CharmmPsfFile
 from create_insilico import *
@@ -84,7 +86,7 @@ class MD_simulation:
 
         # Add forces
         print('Adding forces...')
-        free_start = True
+        self.free_start = free_start = True
         if free_start:
             params = self.force_params.copy()
             params[1] = params[7] = 0
@@ -114,28 +116,33 @@ class MD_simulation:
         # Run molecular dynamics simulation
         self.save_state(frame_path_npy, frame_path_pdb, step=0)
         if run_MD:
-            resolutions = [1]
+            resolutions = [1, 0.5]
             for i, res in enumerate(resolutions):
                 print(f'Running molecular dynamics at {res}Mb resolution ({i+1}/{len(resolutions)})...')
+
+                if i != 0:
+                    self.resolution_change(new_res=res)
 
                 self.simulate_resolution(resolution=1, sim_step=sim_step, 
                                         frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
                                         params=params, free_start=free_start)
+                
 
 
     def simulate_resolution(self, resolution: float, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
-            if i%self.step==0 and i>self.burnin*self.step:
+            if i%self.step == 0 and i > self.burnin*self.step:
                 self.save_state(frame_path_npy, frame_path_pdb, step=i)
             # updating the repulsive and frame force strength:
             if free_start:
                 t = (i+1)/self.N_steps
                 self.system.removeForce(self.ev_force_index)
                 self.add_evforce(r=params[0], strength=self.force_params[1]*t)
-                self.system.removeForce(self.ff_force_index)
+                self.system.removeForce(self.ff_force_index-1)
                 self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
+                self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index = 3, 1, 2, 4
         self.plot_reporter()
         end = time.time()
         elapsed = end - start
@@ -143,12 +150,21 @@ class MD_simulation:
         print(f'Simulation finished succesfully.\nMD finished in {elapsed/60:.2f} minutes.\n')
 
 
-    def resolution_change(self, new_res: int):
-        # canceling previous forcefield:
-        self.system.removeForce(self.ev_force_index)
-        self.system.removeForce(self.bb_force_index)
-        self.system.removeForce(self.sc_force_index)
-        self.system.removeForce(self.ff_force_index)
+    def resolution_change(self, new_res: float):
+        """
+        Prepares the system for the simulation in new resolution new_res.
+        Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
+        The OpenMM system is reinitailized and ready for a new simulation.
+        """
+        # removing previous forcefield:
+
+        print(self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index)
+
+        for i, force in enumerate(self.system.getForces()):
+            print(f"Force index: {i}, Force type: {type(force).__name__}")
+
+        for i in reversed(range(self.system.getNumForces())):
+            self.system.removeForce(i)
 
         # rescaling heatmaps:
         self.chrom = "chr1"
@@ -159,6 +175,7 @@ class MD_simulation:
         new_m = int(self.chrom_size / new_res)
         bin_edges = np.linspace(0, self.chrom_size, new_m + 1)
 
+        new_heatmaps = []
         for df in self.contact_dfs:
             x_bins = np.digitize(df['x'], bin_edges) - 1
             y_bins = np.digitize(df['y'], bin_edges) - 1
@@ -166,11 +183,36 @@ class MD_simulation:
             for x_bin, y_bin in zip(x_bins, y_bins):
                 if 0 <= x_bin < new_m and 0 <= y_bin < new_m:
                     bin_matrix[x_bin, y_bin] += 1
+            new_heatmaps.append(bin_matrix)
+
+        self.heatmaps = new_heatmaps
 
         # interpolating structures:
+        frames = self.get_frames_positions_npy()
+        frames_new = [extrapolate_points(frame, new_m) for frame in frames]
+        positions = [Vec3(x, y, z) * u.nanometer for frame in frames_new for x, y, z in frame]
 
+        new_topology = Topology()
+        chain = new_topology.addChain()
+        residue = new_topology.addResidue("NEW_RES", chain)
+        for i, _ in enumerate(positions):
+            new_topology.addAtom(f"Atom{i+1}", Element.getByAtomicNumber(6), residue)
+
+        # Recreate the system with the new topology
+        forcefield = ForceField('forcefields/classic_sm_ff.xml')
+        self.system = forcefield.createSystem(new_topology, nonbondedCutoff=1 * u.nanometer)
+
+        # Reinitialize the simulation with the new topology and positions
+        self.simulation.context.reinitialize(preserveState=True)
+        self.simulation.context.setPositions(positions)
 
         # updating force field:
+        if self.free_start:
+            params = self.force_params.copy()
+            params[1] = params[7] = 0
+            self.add_forcefield(params)
+        else:
+            self.add_forcefield(self.force_params)
         
 
     def get_frames_positions_npy(self) -> list:
@@ -202,7 +244,8 @@ class MD_simulation:
             save_points_as_pdb(frame_positions, 
                                 os.path.join(path_pdb, "step{}_frame{}.pdb".format(str(step).zfill(3), str(frame).zfill(3))),
                                 verbose=False)
-            
+
+
     def add_evforce(self, r=0.6, strength=4e1):
         'Leonard-Jones potential for excluded volume'
         self.ev_force = mm.CustomNonbondedForce('epsilon*(r-r_opt)^2*step(r_opt-r)*delta(frame1-frame2)')
@@ -216,6 +259,7 @@ class MD_simulation:
                 self.ev_force.addParticle([frame])
         self.ev_force_index = self.system.addForce(self.ev_force)
 
+
     def add_backbone(self, r=0.6, strength=1e4):
         'Harmonic bond force between succesive beads'
         self.bond_force = mm.HarmonicBondForce()
@@ -223,6 +267,7 @@ class MD_simulation:
             for i in range(self.m-1):
                 self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1, length=r, k=strength)
         self.bb_force_index = self.system.addForce(self.bond_force)
+
 
     def add_schic_contacts(self, r=0.3, strength=1e5):
         'Harmonic bond force between loci connected by a scHi-C contact'
