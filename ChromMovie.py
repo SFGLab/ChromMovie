@@ -157,12 +157,6 @@ class MD_simulation:
         The OpenMM system is reinitailized and ready for a new simulation.
         """
         # removing previous forcefield:
-
-        print(self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index)
-
-        for i, force in enumerate(self.system.getForces()):
-            print(f"Force index: {i}, Force type: {type(force).__name__}")
-
         for i in reversed(range(self.system.getNumForces())):
             self.system.removeForce(i)
 
