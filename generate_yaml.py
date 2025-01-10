@@ -5,7 +5,7 @@ CONFIG_PARAMETERS = {
     'general':{
         'input': {
             'value': None,
-            'description': 'Folder containing input scHi-C maps in npy format. If \'None\' simulated scHi-C maps are going to be used.'
+            'description': 'Folder containing input scHi-C contacts in csv format. If \'None\' simulated scHi-C maps are going to be used.'
         },
         'output': {
             'value': 'results',
@@ -26,6 +26,14 @@ CONFIG_PARAMETERS = {
         'artificial_structure': {
             'value': 1,
             'description': 'Index of the in silico structure to be generated as simulation input.\nOnly applicable if input==None. Available structure indices: TODO'
+        },
+        'genome': {
+            'value': 'mm10',
+            'description': 'Genome assembly of the input data. Currently supported assemblies: hg19, hg38, mm10, GRCm39.'
+        },
+        'chrom': {
+            'value': 'chr1',
+            'description': 'Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.'
         }
     },
 
@@ -33,6 +41,10 @@ CONFIG_PARAMETERS = {
         'platform': {
             'value': 'OpenCL',
             'description': 'TODO'
+        },
+        'resolutions': {
+            'value': '5,2',
+            'description': 'Resolutions to be used for hierarchical modeling. Expected to be in the form of comma separated integer of float numbers in the units of Mb.'
         },
         'N_steps': {
             'value': 100,
@@ -138,6 +150,7 @@ CONFIG_PARAMETERS = {
     }
 }
 
+
 def merge_with_defaults(user_config):
     """Merge user-specified parameters with default configuration."""
     merged_config = {}
@@ -159,6 +172,7 @@ def merge_with_defaults(user_config):
     
     return {'descriptions': descriptions, **merged_config}
 
+
 def generate_yaml_config(output_file, user_config=None):
     """Generate a YAML configuration file with user-specified and default parameters."""
     if user_config is None:
@@ -172,11 +186,14 @@ def generate_yaml_config(output_file, user_config=None):
     
     print(f"Configuration file '{output_file}' generated successfully.")
 
+
 if __name__ == "__main__":
     # Example of user-specified parameters:
     user_specified_config = {
         'general': {
-            'output': 'results'
+            'input': "examples/example1_cell_cycle",
+            'output': 'results',
+            'chrom': 'chr1'
         },
         'simulation': {
             'ev_min_dist': 2

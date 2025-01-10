@@ -26,24 +26,35 @@ from PIL import Image
 
 
 class MD_simulation:
-    def __init__(self, heatmaps, output_path, N_steps, burnin, MC_step, platform, force_params):
+    def __init__(self, main_config, sim_config, heatmaps, contact_dfs, output_path, N_steps, burnin, MC_step, platform, force_params):
         '''
+        Expects either heatmaps or contact_dfs to be not None.
+        '''
+        self.genome = main_config["genome"]
+        self.chrom = main_config["chrom"]
+        self.chrom_size = pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
+                                    header=None, index_col=0, sep="\t").loc[self.chrom, 1]
+        self.contact_dfs = contact_dfs
         
-        '''
-        n = len(heatmaps)
-        if n > 1:
-            self.n = n
+        if contact_dfs is not None:
+            self.n = len(contact_dfs)
+            init_resolution = float(sim_config['resolutions'].split(",")[0].strip())*1_000_000
+            self.m = int(np.ceil(self.chrom_size/init_resolution))
+            self.heatmaps = self.get_heatmaps_from_dfs(init_resolution)
         else:
-            raise(Exception("At least two heatmaps must be provided. Got: {}".format(str(n))))
-        if not all(h.shape == heatmaps[0].shape for h in heatmaps):
-            raise ValueError("Not all heatmaps have the same shape.")
-        if heatmaps[0].shape[0] != heatmaps[0].shape[1]:
-            raise ValueError("The heatmaps must be rectangular.")
-        self.m = heatmaps[0].shape[0]
-        if not all(((h==0) | (h==1)).all() for h in heatmaps):
-            raise ValueError("Not all heatmaps are binary.")
-
-        self.heatmaps = heatmaps
+            n = len(heatmaps)
+            if n > 1:
+                self.n = n
+            else:
+                raise(Exception("At least two heatmaps must be provided. Got: {}".format(str(n))))
+            if not all(h.shape == heatmaps[0].shape for h in heatmaps):
+                raise ValueError("Not all heatmaps have the same shape.")
+            if heatmaps[0].shape[0] != heatmaps[0].shape[1]:
+                raise ValueError("The heatmaps must be rectangular.")
+            self.m = heatmaps[0].shape[0]
+            if not all(((h==0) | (h==1)).all() for h in heatmaps):
+                raise ValueError("Not all heatmaps are binary.")
+            self.heatmaps = heatmaps
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -121,15 +132,14 @@ class MD_simulation:
                 print(f'Running molecular dynamics at {res}Mb resolution ({i+1}/{len(resolutions)})...')
 
                 if i != 0:
-                    self.resolution_change(new_res=res)
+                    self.resolution_change(new_res=res*1_000_000)
 
-                self.simulate_resolution(resolution=1, sim_step=sim_step, 
-                                        frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
+                self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
                                         params=params, free_start=free_start)
                 
 
 
-    def simulate_resolution(self, resolution: float, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
+    def simulate_resolution(self, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
@@ -150,24 +160,12 @@ class MD_simulation:
         print(f'Simulation finished succesfully.\nMD finished in {elapsed/60:.2f} minutes.\n')
 
 
-    def resolution_change(self, new_res: float):
+    def get_heatmaps_from_dfs(self, res: float) -> list:
         """
-        Prepares the system for the simulation in new resolution new_res.
-        Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
-        The OpenMM system is reinitailized and ready for a new simulation.
+        Creates a list of heatmaps according to a given resolution based on contact information in self.contact_dfs.
         """
-        # removing previous forcefield:
-        for i in reversed(range(self.system.getNumForces())):
-            self.system.removeForce(i)
-
-        # rescaling heatmaps:
-        self.chrom = "chr1"
-        self.genome = "mm10"
-        self.chrom_size = pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
-                                      header=None, index_col=0, sep="\t").loc[self.chrom, 1]
-
-        new_m = int(self.chrom_size / new_res)
-        bin_edges = np.linspace(0, self.chrom_size, new_m + 1)
+        new_m = int(np.ceil(self.chrom_size / res))
+        bin_edges = [i*res for i in range(new_m + 1)]
 
         new_heatmaps = []
         for df in self.contact_dfs:
@@ -179,9 +177,24 @@ class MD_simulation:
                     bin_matrix[x_bin, y_bin] += 1
             new_heatmaps.append(bin_matrix)
 
-        self.heatmaps = new_heatmaps
+        return new_heatmaps
+
+
+    def resolution_change(self, new_res: float):
+        """
+        Prepares the system for the simulation in new resolution new_res.
+        Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
+        The OpenMM system is reinitailized and ready for a new simulation.
+        """
+        # removing previous forcefield:
+        for i in reversed(range(self.system.getNumForces())):
+            self.system.removeForce(i)
+
+        # rescaling heatmaps:
+        self.heatmaps = self.get_heatmaps_from_dfs(new_res)
 
         # interpolating structures:
+        new_m = int(np.ceil(self.chrom_size / new_res))
         frames = self.get_frames_positions_npy()
         frames_new = [extrapolate_points(frame, new_m) for frame in frames]
         positions = [Vec3(x, y, z) * u.nanometer for frame in frames_new for x, y, z in frame]
@@ -207,6 +220,9 @@ class MD_simulation:
             self.add_forcefield(params)
         else:
             self.add_forcefield(self.force_params)
+
+        # updating parameters:
+        self.m = new_m
         
 
     def get_frames_positions_npy(self) -> list:

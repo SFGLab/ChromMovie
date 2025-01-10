@@ -1,6 +1,6 @@
 descriptions:
   general:
-    input: Folder containing input scHi-C maps in npy format. If 'None' simulated
+    input: Folder containing input scHi-C contacts in csv format. If 'None' simulated
       scHi-C maps are going to be used.
     output: Output folder for storing simulation results
     n: Number of scHi-C frames to be generated. Only applicable if input==None.
@@ -12,8 +12,14 @@ descriptions:
       input.
 
       Only applicable if input==None. Available structure indices: TODO'
+    genome: 'Genome assembly of the input data. Currently supported assemblies: hg19,
+      hg38, mm10, GRCm39.'
+    chrom: Chromosome to be modeled. The input files are going to be filtered for
+      intra-chromosomal contacts within this chromosome.
   simulation:
     platform: TODO
+    resolutions: Resolutions to be used for hierarchical modeling. Expected to be
+      in the form of comma separated integer of float numbers in the units of Mb.
     N_steps: TODO
     burnin: TODO
     MC_step: TODO
@@ -73,14 +79,17 @@ descriptions:
 
       If False the coefficient will have stable value of ff_coef.'
 general:
-  input: null
+  input: examples/example1_cell_cycle
   output: results
   n: 10
   m: 100
   n_contacts: 50
   artificial_structure: 1
+  genome: mm10
+  chrom: chr1
 simulation:
   platform: OpenCL
+  resolutions: 5,2
   N_steps: 100
   burnin: 5
   MC_step: 1
