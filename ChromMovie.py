@@ -5,6 +5,7 @@
 import os
 import time
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import openmm as mm
@@ -113,28 +114,13 @@ class MD_simulation:
         # Run molecular dynamics simulation
         self.save_state(frame_path_npy, frame_path_pdb, step=0)
         if run_MD:
-            print('Running molecular dynamics ...')
+            resolutions = [1]
+            for i, res in enumerate(resolutions):
+                print(f'Running molecular dynamics at {res}Mb resolution ({i+1}/{len(resolutions)})...')
 
-            self.simulate_resolution(resolution=1, sim_step=sim_step, 
-                                     frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
-                                     params=params, free_start=free_start)
-            # start = time.time()
-            # for i in range(1, self.N_steps):
-            #     self.simulation.step(sim_step)
-            #     if i%self.step==0 and i>self.burnin*self.step:
-            #         self.save_state(frame_path_npy, frame_path_pdb, step=i)
-            #     # updating the repulsive and frame force strength:
-            #     if free_start:
-            #         t = (i+1)/self.N_steps
-            #         self.system.removeForce(self.ev_force_index)
-            #         self.add_evforce(r=params[0], strength=self.force_params[1]*t)
-            #         self.system.removeForce(self.ff_force_index)
-            #         self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
-            # self.plot_reporter()
-            # end = time.time()
-            # elapsed = end - start
-
-            # print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
+                self.simulate_resolution(resolution=1, sim_step=sim_step, 
+                                        frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
+                                        params=params, free_start=free_start)
 
 
     def simulate_resolution(self, resolution: float, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
@@ -154,12 +140,46 @@ class MD_simulation:
         end = time.time()
         elapsed = end - start
 
-        print(f'Simulation finished succesfully!\nMD finished in {elapsed/60:.2f} minutes.\n')
+        print(f'Simulation finished succesfully.\nMD finished in {elapsed/60:.2f} minutes.\n')
 
-    def save_state(self, path_npy, path_pdb, step):
-        "Saves the current state of the simulation in pdb files and npy arrays. Parameters step and frame specify the name of the file"
+
+    def resolution_change(self, new_res: int):
+        # canceling previous forcefield:
+        self.system.removeForce(self.ev_force_index)
+        self.system.removeForce(self.bb_force_index)
+        self.system.removeForce(self.sc_force_index)
+        self.system.removeForce(self.ff_force_index)
+
+        # rescaling heatmaps:
+        self.chrom = "chr1"
+        self.genome = "mm10"
+        self.chrom_size = pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
+                                      header=None, index_col=0, sep="\t").loc[self.chrom, 1]
+
+        new_m = int(self.chrom_size / new_res)
+        bin_edges = np.linspace(0, self.chrom_size, new_m + 1)
+
+        for df in self.contact_dfs:
+            x_bins = np.digitize(df['x'], bin_edges) - 1
+            y_bins = np.digitize(df['y'], bin_edges) - 1
+            bin_matrix = np.zeros((new_m, new_m), dtype=int)
+            for x_bin, y_bin in zip(x_bins, y_bins):
+                if 0 <= x_bin < new_m and 0 <= y_bin < new_m:
+                    bin_matrix[x_bin, y_bin] += 1
+
+        # interpolating structures:
+
+
+        # updating force field:
+        
+
+    def get_frames_positions_npy(self) -> list:
+        """
+        Creates a list of size n of (m, 3) numpy arrays with current positions of beads in each frame.
+        """
         self.state = self.simulation.context.getState(getPositions=True)
         positions = self.state.getPositions()
+        frames = []
         for frame in range(self.n):
             x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
             y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
@@ -167,6 +187,16 @@ class MD_simulation:
             frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
                                             np.array(y).reshape((len(y), 1)), 
                                             np.array(z).reshape((len(z), 1))))
+            frames.append(frame_positions)
+        
+        return frames
+
+
+    def save_state(self, path_npy, path_pdb, step):
+        "Saves the current state of the simulation in pdb files and npy arrays. Parameters step and frame specify the name of the file"
+        frames = self.get_frames_positions_npy()
+        for frame in range(self.n):
+            frame_positions = frames[frame]
             np.save(os.path.join(path_npy, "step{}_frame{}.npy".format(str(step).zfill(3), str(frame).zfill(3))),
                     frame_positions)
             save_points_as_pdb(frame_positions, 
