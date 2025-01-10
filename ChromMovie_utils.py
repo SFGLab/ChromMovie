@@ -108,5 +108,25 @@ def self_avoiding_random_walk(n: int, step: float = 1.0, bead_radius: float = 0.
         return points
 
 
+def extrapolate_points(points: np.array, n: int) -> np.array:
+    """
+    Extrapolates the points (m, 3) to new size (n, 3) preserving equal distances along the path created by points.
+    """
+    n1 = len(points)
+    total_len = n1 - 1
+    points_new = [points[0]]
+    for i in range(1, n):
+        curr_len = total_len * i / (n - 1)
+        p1 = points[int(curr_len // 1)]
+        if curr_len // 1 == n1 - 1:
+            points_new.append(p1)
+        else:
+            p2 = points[int(curr_len // 1) + 1]
+            alpha = curr_len % 1
+            p = (p1[0] * (1 - alpha) + p2[0] * alpha, p1[1] * (1 - alpha) + p2[1] * alpha,
+                 p1[2] * (1 - alpha) + p2[2] * alpha)
+            points_new.append(p)
+    return points_new
+
 
 
