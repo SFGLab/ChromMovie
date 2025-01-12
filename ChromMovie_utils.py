@@ -129,4 +129,35 @@ def extrapolate_points(points: np.array, n: int) -> np.array:
     return points_new
 
 
+def get_custom_force_formula(f_type: str="attractive", f_formula: str="harmonic", linear: bool=False, l_bound: float=1, u_bound: float=1, u_linear:float=1) -> str:
+    """
+    Creates a formula for the CustomBondForce function. 
+    f_type: can be either attractive or repulsive. 
+    f_formula: can be either harmonic or gaussian.
+    linear: if True the formula will become linear after the u_linear value.
+    l_bound: Marks the end of the repulsive force and the beginning of the flat bottom of the potential.
+    u_bound: Marks the end of the flat bottom of the potential and the beginning of the attractive part. If l_bound==u_bound no flat bottom is used.
+    l_linear: Marks the end of the attractive part of the potential and the beginning of the linear function. If u_bound==l_linear no linearization is used.
+    Returns string with the desired force formula.
+    """
+    formula = ""
+    if f_type == "attractive":
+        if f_formula == "harmonic":
+            if l_bound == u_bound == u_linear:
+                formula = '(r-r0)^2'
+            elif u_bound == u_linear:
+                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)'
+            else:
+                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)*step(r_u+d-r) + d*(2*r-d-2*r_u)*step(r-r_u-d))'
+        elif f_formula == "gaussian":
+            if l_bound == u_bound:
+                formula = '(1-exp(-(r-r_0)^2/2/r_0^2))'
+            else:
+                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))'
+    elif f_type == "repulsive":
+        formula = '((r-r_l)^2*step(r_l-r)'
+
+    if formula == "":
+        raise(Exception("Could not find a correct formula for a force."))
+    return formula
 
