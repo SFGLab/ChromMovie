@@ -78,10 +78,8 @@ class MD_simulation:
         # Define initial structure
         print('Building initial structure...')
         points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[1], bead_radius=self.force_params[1]/2)
-        # points_init_frame = np.random.normal(points_init_frame, 0.01)
         points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
 
-        # points = self_avoiding_random_walk(self.m*self.n, 2, 0.001)
         write_mmcif(points, self.output_path+'/init_struct.cif')
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
@@ -132,7 +130,7 @@ class MD_simulation:
                 print(f'Running molecular dynamics at {res}Mb resolution ({i+1}/{len(resolutions)})...')
 
                 if i != 0:
-                    self.resolution_change(new_res=res*1_000_000)
+                    self.resolution_change(new_res=res*1_000_000, sim_step=sim_step)
 
                 self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
                                         params=params, free_start=free_start)
@@ -180,7 +178,7 @@ class MD_simulation:
         return new_heatmaps
 
 
-    def resolution_change(self, new_res: float):
+    def resolution_change(self, new_res: float, sim_step: int):
         """
         Prepares the system for the simulation in new resolution new_res.
         Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
@@ -205,13 +203,28 @@ class MD_simulation:
         for i, _ in enumerate(positions):
             new_topology.addAtom(f"Atom{i+1}", Element.getByAtomicNumber(6), residue)
 
+        # Saving new starting point:
+        points = np.vstack(tuple(frames_new))
+        write_mmcif(points, self.output_path+f"/struct_res{str(int(new_res*1000))}.cif")
+
         # Recreate the system with the new topology
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
         self.system = forcefield.createSystem(new_topology, nonbondedCutoff=1 * u.nanometer)
 
         # Reinitialize the simulation with the new topology and positions
-        self.simulation.context.reinitialize(preserveState=True)
-        self.simulation.context.setPositions(positions)
+        # self.simulation.context.reinitialize(preserveState=True)
+        # self.simulation.context.setPositions(positions)
+
+        pdb = PDBxFile(self.output_path+f"/struct_res{str(int(new_res*1000))}.cif")
+        forcefield = ForceField('forcefields/classic_sm_ff.xml')
+        self.system = forcefield.createSystem(pdb.topology, nonbondedCutoff=1*u.nanometer)
+
+        integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
+
+        platform = mm.Platform.getPlatformByName(self.platform)
+        self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
+        self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
+        self.simulation.context.setPositions(pdb.positions)
 
         # updating force field:
         if self.free_start:
