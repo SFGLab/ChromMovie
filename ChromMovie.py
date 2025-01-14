@@ -38,7 +38,7 @@ class MD_simulation:
         
         if contact_dfs is not None:
             self.n = len(contact_dfs)
-            init_resolution = float(sim_config['resolutions'].split(",")[0].strip())*1_000_000
+            init_resolution = float(str(sim_config['resolutions']).split(",")[0].strip())*1_000_000
             self.m = int(np.ceil(self.chrom_size/init_resolution))
             self.heatmaps = self.get_heatmaps_from_dfs(init_resolution)
         else:
@@ -64,6 +64,8 @@ class MD_simulation:
         self.step, self.burnin = MC_step, burnin//MC_step
         self.platform = platform
         self.force_params = force_params
+        self.resolutions = [float(res.strip())*1_000_000 for res in str(sim_config['resolutions']).split(",")]
+
     
     def run_pipeline(self, run_MD=True, sim_step=5, write_files=False, plots=False):
         '''
@@ -123,15 +125,13 @@ class MD_simulation:
         if write_files and not os.path.exists(frame_path_pdb): os.makedirs(frame_path_pdb)
         
         # Run molecular dynamics simulation
-        self.save_state(frame_path_npy, frame_path_pdb, step=0)
+        
         if run_MD:
-            resolutions = [1, 0.5]
-            for i, res in enumerate(resolutions):
-                print(f'Running molecular dynamics at {res}Mb resolution ({i+1}/{len(resolutions)})...')
-
+            for i, res in enumerate(self.resolutions):
+                print(f'Running molecular dynamics at {res/1_000_000}Mb resolution ({i+1}/{len(self.resolutions)})...')
                 if i != 0:
-                    self.resolution_change(new_res=res*1_000_000, sim_step=sim_step)
-
+                    self.resolution_change(new_res=res, sim_step=sim_step)
+                self.save_state(frame_path_npy, frame_path_pdb, step=0)
                 self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
                                         params=params, free_start=free_start)
                 
@@ -185,8 +185,8 @@ class MD_simulation:
         The OpenMM system is reinitailized and ready for a new simulation.
         """
         # removing previous forcefield:
-        for i in reversed(range(self.system.getNumForces())):
-            self.system.removeForce(i)
+        # for i in reversed(range(self.system.getNumForces())):
+        #     self.system.removeForce(i)
 
         # rescaling heatmaps:
         self.heatmaps = self.get_heatmaps_from_dfs(new_res)
@@ -195,47 +195,52 @@ class MD_simulation:
         new_m = int(np.ceil(self.chrom_size / new_res))
         frames = self.get_frames_positions_npy()
         frames_new = [extrapolate_points(frame, new_m) for frame in frames]
-        positions = [Vec3(x, y, z) * u.nanometer for frame in frames_new for x, y, z in frame]
+        # positions = [Vec3(x, y, z) * u.nanometer for frame in frames_new for x, y, z in frame]
 
-        new_topology = Topology()
-        chain = new_topology.addChain()
-        residue = new_topology.addResidue("NEW_RES", chain)
-        for i, _ in enumerate(positions):
-            new_topology.addAtom(f"Atom{i+1}", Element.getByAtomicNumber(6), residue)
+        # new_topology = Topology()
+        # chain = new_topology.addChain()
+        # residue = new_topology.addResidue("NEW_RES", chain)
+        # for i, _ in enumerate(positions):
+        #     new_topology.addAtom(f"Atom{i+1}", Element.getByAtomicNumber(6), residue)
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
-        write_mmcif(points, self.output_path+f"/struct_res{str(int(new_res*1000))}.cif")
+        # print(points.shape, new_m, self.n)
+        write_mmcif(points, self.output_path+f"/struct_res{str(int(new_res))}.cif")
 
         # Recreate the system with the new topology
-        forcefield = ForceField('forcefields/classic_sm_ff.xml')
-        self.system = forcefield.createSystem(new_topology, nonbondedCutoff=1 * u.nanometer)
+        # forcefield = ForceField('forcefields/classic_sm_ff.xml')
+        # self.system = forcefield.createSystem(new_topology, nonbondedCutoff=1 * u.nanometer)
 
         # Reinitialize the simulation with the new topology and positions
         # self.simulation.context.reinitialize(preserveState=True)
         # self.simulation.context.setPositions(positions)
 
-        pdb = PDBxFile(self.output_path+f"/struct_res{str(int(new_res*1000))}.cif")
+        # updating parameters:
+        self.m = new_m
+
+        # Define System
+        pdb = PDBxFile(self.output_path+f"/struct_res{str(int(new_res))}.cif")
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
         self.system = forcefield.createSystem(pdb.topology, nonbondedCutoff=1*u.nanometer)
-
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
-        platform = mm.Platform.getPlatformByName(self.platform)
-        self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
-        self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
-        self.simulation.context.setPositions(pdb.positions)
-
-        # updating force field:
-        if self.free_start:
+        # Add forces
+        print('Adding forces...')
+        self.free_start = free_start = True
+        if free_start:
             params = self.force_params.copy()
             params[1] = params[7] = 0
             self.add_forcefield(params)
         else:
             self.add_forcefield(self.force_params)
 
-        # updating parameters:
-        self.m = new_m
+        # Minimize energy
+        print('Minimizing energy...')
+        platform = mm.Platform.getPlatformByName(self.platform)
+        self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
+        self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
+        self.simulation.context.setPositions(pdb.positions)
         
 
     def get_frames_positions_npy(self) -> list:
@@ -391,7 +396,7 @@ class MD_simulation:
             row.cell(str(self.force_params[7]))
             row.cell("Frame force (FF) coefficient")
 
-        # Page 1
+        # # Page 1
         pdf.add_page()
         pdf.set_font('helvetica', size=20)
         pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
@@ -418,7 +423,7 @@ class MD_simulation:
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
 
-        # Page 2
+        # # Page 2
         pdf.add_page()
         pdf.set_font('helvetica', size=20)
         pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
