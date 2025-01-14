@@ -77,14 +77,16 @@ def get_sc_violation(pdb_folder: str, expected_dist: float, heatmaps: list) -> p
     """Computes the mean difference between real distnaces between beads connected by sc contact and their expected distances."""
     files = os.listdir(pdb_folder)
     m = heatmaps[0].shape[0]
-    lists_of_contacts = [[(i,j) for i in range(1, m) for j in range(i) if heatmaps[k][i, j]==1] for k in range(len(heatmaps))]
+    lists_of_contacts = [[(i,j) for i in range(1, m) for j in range(i) if heatmaps[k][j, i]>0] for k in range(len(heatmaps))]
     df = pd.DataFrame(columns=["step", "frame", "pval"])
+    
     for file in files:
         step = int(file.split("_")[0].split("step")[-1])
         frame = int(file.split("_frame")[1].split(".")[0])
         structure = point_reader(os.path.join(pdb_folder, file))
         diffs = [np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-expected_dist for (i, j) in lists_of_contacts[frame]]
-        df.loc[df.shape[0]] = [step, frame, np.mean(diffs)]
+        value = 0 if len(diffs) == 0 else np.mean(diffs)
+        df.loc[df.shape[0]] = [step, frame, value]
     return df
 
 
