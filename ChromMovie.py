@@ -1,5 +1,5 @@
 #################################################################
-########### Krzysztof Banecki, Warsaw 2024 ######################
+########### Krzysztof Banecki, Warsaw 2025 ######################
 #################################################################
 
 import os
@@ -10,13 +10,10 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import openmm as mm
 import openmm.unit as u
-from simtk.openmm import Vec3
-from simtk.openmm.app import Topology, Element
 from sys import stdout
-from openmm.app import PDBFile, PDBxFile, ForceField, Simulation, PDBReporter, PDBxReporter, DCDReporter, StateDataReporter, CharmmPsfFile
+from openmm.app import PDBxFile, ForceField, Simulation, StateDataReporter
 from create_insilico import *
 from ChromMovie_utils import *
-from points_io import save_points_as_pdb
 from reporter_utils import get_energy, get_mean_Rg, get_bb_violation, get_sc_violation, get_ff_violation
 import shutil
 
@@ -87,12 +84,12 @@ class MD_simulation:
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
         for frame in range(self.n):
-            save_points_as_pdb(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.pdb"))
+            write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
         # Define System
-        pdb = PDBxFile(self.output_path+'/init_struct.cif')
+        cif = PDBxFile(self.output_path+'/init_struct.cif')
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
-        self.system = forcefield.createSystem(pdb.topology, nonbondedCutoff=1*u.nanometer)
+        self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
         # Add forces
@@ -108,10 +105,10 @@ class MD_simulation:
         # Minimize energy
         print('Minimizing energy...')
         platform = mm.Platform.getPlatformByName(self.platform)
-        self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
+        self.simulation = Simulation(cif.topology, self.system, integrator, platform)
         self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
         # self.simulation.reporters.append(DCDReporter(self.output_path+'/stochastic_MD.dcd', 5))
-        self.simulation.context.setPositions(pdb.positions)
+        self.simulation.context.setPositions(cif.positions)
         current_platform = self.simulation.context.getPlatform()
         print(f"Simulation will run on platform: {current_platform.getName()}")
         self.simulation.minimizeEnergy()
@@ -120,9 +117,9 @@ class MD_simulation:
         frame_path_npy = os.path.join(self.output_path, "frames_npy")
         if write_files and os.path.exists(frame_path_npy): shutil.rmtree(frame_path_npy)
         if write_files and not os.path.exists(frame_path_npy): os.makedirs(frame_path_npy)
-        frame_path_pdb = os.path.join(self.output_path, "frames_pdb")
-        if write_files and os.path.exists(frame_path_pdb): shutil.rmtree(frame_path_pdb)
-        if write_files and not os.path.exists(frame_path_pdb): os.makedirs(frame_path_pdb)
+        frame_path_cif = os.path.join(self.output_path, "frames_cif")
+        if write_files and os.path.exists(frame_path_cif): shutil.rmtree(frame_path_cif)
+        if write_files and not os.path.exists(frame_path_cif): os.makedirs(frame_path_cif)
         
         # Run molecular dynamics simulation
         
@@ -131,18 +128,18 @@ class MD_simulation:
                 print(f'Running molecular dynamics at {res/1_000_000}Mb resolution ({i+1}/{len(self.resolutions)})...')
                 if i != 0:
                     self.resolution_change(new_res=res, sim_step=sim_step)
-                self.save_state(frame_path_npy, frame_path_pdb, step=0)
-                self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_pdb=frame_path_pdb, 
+                self.save_state(frame_path_npy, frame_path_cif, step=0)
+                self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
                                         params=params, free_start=free_start)
                 
 
 
-    def simulate_resolution(self, sim_step: int, frame_path_npy: str, frame_path_pdb: str, params: list, free_start: bool=True):
+    def simulate_resolution(self, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: list, free_start: bool=True):
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
             if i%self.step == 0 and i > self.burnin*self.step:
-                self.save_state(frame_path_npy, frame_path_pdb, step=i)
+                self.save_state(frame_path_npy, frame_path_cif, step=i)
             # updating the repulsive and frame force strength:
             if free_start:
                 t = (i+1)/self.N_steps
@@ -200,9 +197,9 @@ class MD_simulation:
         self.m = new_m
 
         # Define System
-        pdb = PDBxFile(self.output_path+f"/struct_res{str(int(new_res))}.cif")
+        cif = PDBxFile(self.output_path+f"/struct_res{str(int(new_res))}.cif")
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
-        self.system = forcefield.createSystem(pdb.topology, nonbondedCutoff=1*u.nanometer)
+        self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
         # Add forces
@@ -218,9 +215,9 @@ class MD_simulation:
         # Prepare simulation
         print('Minimizing energy...')
         platform = mm.Platform.getPlatformByName(self.platform)
-        self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
+        self.simulation = Simulation(cif.topology, self.system, integrator, platform)
         self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
-        self.simulation.context.setPositions(pdb.positions)
+        self.simulation.context.setPositions(cif.positions)
         
 
     def get_frames_positions_npy(self) -> list:
@@ -242,16 +239,15 @@ class MD_simulation:
         return frames
 
 
-    def save_state(self, path_npy, path_pdb, step):
-        "Saves the current state of the simulation in pdb files and npy arrays. Parameters step and frame specify the name of the file"
+    def save_state(self, path_npy, path_cif, step):
+        "Saves the current state of the simulation in cif files and npy arrays. Parameters step and frame specify the name of the file"
         frames = self.get_frames_positions_npy()
         for frame in range(self.n):
             frame_positions = frames[frame]
             np.save(os.path.join(path_npy, "step{}_frame{}.npy".format(str(step).zfill(3), str(frame).zfill(3))),
                     frame_positions)
-            save_points_as_pdb(frame_positions, 
-                                os.path.join(path_pdb, "step{}_frame{}.pdb".format(str(step).zfill(3), str(frame).zfill(3))),
-                                verbose=False)
+            write_mmcif(frame_positions, 
+                                os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))))
 
 
     def add_evforce(self, r=0.6, strength=4e1):
@@ -427,7 +423,7 @@ class MD_simulation:
         ax[0][1].set_xlabel("simulation step")
         ax[0][1].plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
 
-        df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_pdb"))
+        df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_cif"))
         ax[1][0].set_title("Mean radius of gyration")
         ax[1][0].set_ylabel("Rg")
         ax[1][0].set_xlabel("simulation step")
@@ -436,7 +432,7 @@ class MD_simulation:
             ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
         ax[1][0].legend()
 
-        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[2])
+        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[2])
         ax[1][1].set_title("Mean backbone distance violation")
         ax[1][1].set_ylabel("")
         ax[1][1].set_xlabel("simulation step")
@@ -446,7 +442,7 @@ class MD_simulation:
         ax[1][1].axhline(0, linestyle='--', c="black")
         ax[1][1].legend()
 
-        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[4], self.heatmaps)
+        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[4], self.heatmaps)
         ax[2][0].set_title("Mean sc contact violation")
         ax[2][0].set_ylabel("")
         ax[2][0].set_xlabel("simulation step")
@@ -456,7 +452,7 @@ class MD_simulation:
         ax[2][0].axhline(0, linestyle='--', c="black")
         ax[2][0].legend()
 
-        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_pdb"), self.force_params[6])
+        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[6])
         ax[2][1].set_title("Mean frame force violation")
         ax[2][1].set_ylabel("")
         ax[2][1].set_xlabel("simulation step")

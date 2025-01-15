@@ -53,7 +53,7 @@ def main(config_path: str='config.yaml'):
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
         for frame in range(main_config["n"]):
-            save_points_as_pdb(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.pdb"))
+            write_mmcif(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
     # Run ChromMovie
     f_params = [force_config["ev_min_dist"], force_config["ev_coef"],
