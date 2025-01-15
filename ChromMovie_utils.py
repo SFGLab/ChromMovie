@@ -1,9 +1,10 @@
 #########################################################################
-########### CREATOR: SEBASTIAN KORSAK, WARSAW 2022 ######################
+###### KRZYSZTOF BANECKI, SEBASTIAN KORSAK, WARSAW 2025 #################
 #########################################################################
 
 import numpy as np
 from tqdm import tqdm
+from openmm.app import PDBxFile
 
 ############# Creation of mmcif and psf files #############
 mmcif_atomhead = """data_nucsim
@@ -70,6 +71,16 @@ def write_mmcif(points,cif_file_name='LE_init_struct.cif'):
 
     with open(cif_file_name, 'w') as f:
         f.write(cif_file_content)
+
+
+def mmcif2npy(positions_path):
+    positions = PDBxFile(positions_path).positions
+    m = len(positions)
+    array = np.zeros((m, 3))
+    for i, p in enumerate(positions):
+        array[i, :] = [p[j].real for j in range(3)]
+    return array
+
 
 def dist(p1: np.ndarray, p2: np.ndarray) -> float:
     """Mierzy dystans w przestrzeni R^3"""
