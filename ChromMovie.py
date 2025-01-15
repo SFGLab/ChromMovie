@@ -69,13 +69,27 @@ class MD_simulation:
 
     def adjust_force_params(self, resolution: int) -> list:
         "Adjusts the force parameters addordingly to the current resolution of simulation."
-        dist_params = [self.user_force_params[i] for i in [0, 2, 4, 6]]
-        coef_params = [self.user_force_params[i] for i in [1, 3, 5, 7]]
+        # dist_params = [self.user_force_params[i] for i in [0, 2, 4, 6]]
+        # coef_params = [self.user_force_params[i] for i in [1, 3, 5, 7]]
 
-        dist_params = [d*pow(resolution/self.resolutions[-1], 1/3) for d in dist_params]
+        # dist_params = [d*pow(resolution/self.resolutions[-1], 1/3) for d in dist_params]
 
-        self.force_params = [dist_params[0], coef_params[0], dist_params[1], coef_params[1], 
-                            dist_params[2], coef_params[2], dist_params[3], coef_params[3]]
+        # self.force_params = [dist_params[0], coef_params[0], dist_params[1], coef_params[1], 
+        #                     dist_params[2], coef_params[2], dist_params[3], coef_params[3]]
+        
+        dist_transformation = lambda d: d*pow(resolution/self.resolutions[-1], 1/3)
+
+        force_params_new = self.user_force_params.copy()
+        force_params_new["ev_min_dist"] = dist_transformation(force_params_new["ev_min_dist"])
+        force_params_new["bb_opt_dist"] = dist_transformation(force_params_new["bb_opt_dist"])
+        force_params_new["bb_lin_thresh"] = dist_transformation(force_params_new["bb_lin_thresh"])
+        force_params_new["sc_opt_dist"] = dist_transformation(force_params_new["sc_opt_dist"])
+        force_params_new["sc_lin_thresh"] = dist_transformation(force_params_new["sc_lin_thresh"])
+        force_params_new["ff_opt_dist"] = dist_transformation(force_params_new["ff_opt_dist"])
+        force_params_new["ff_lin_thresh"] = dist_transformation(force_params_new["ff_lin_thresh"])
+        
+        self.force_params = force_params_new
+        
         
     
     def run_pipeline(self, run_MD=True, sim_step=5, write_files=True):
@@ -89,8 +103,8 @@ class MD_simulation:
         '''
         # Define initial structure
         print('Building initial structure...')
-        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[2], bead_radius=self.force_params[2]/2)
-        points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params[2] for i in range(self.n)]))
+        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params["bb_opt_dist"], bead_radius=self.force_params["bb_opt_dist"]/2)
+        points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params["bb_opt_dist"] for i in range(self.n)]))
 
         write_mmcif(points, self.output_path+'/struct_00_init.cif')
         path_init = os.path.join(self.output_path, "init")
@@ -109,7 +123,7 @@ class MD_simulation:
         print('Adding forces...')
         if self.free_start:
             params = self.force_params.copy()
-            params[1] = params[7] = 0
+            params["ev_coef"] = params["ff_coef"] = 0
             self.add_forcefield(params)
         else:
             self.add_forcefield(self.force_params)
@@ -163,9 +177,10 @@ class MD_simulation:
             if free_start:
                 t = (i+1)/self.N_steps
                 self.system.removeForce(self.ev_force_index)
-                self.add_evforce(r=params[0], strength=self.force_params[1]*t)
+                self.add_evforce(formula_type=params["ev_formula"], r_min=params["ev_min_dist"], coef=params["ev_coef"]*t)
                 self.system.removeForce(self.ff_force_index-1)
-                self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
+                self.add_between_frame_forces(formula_type=params["ff_formula"], r_opt=params["ff_opt_dist"], 
+                          r_linear=params["ff_lin_thresh"], coef=params["ff_coef"]*t)
                 self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index = 3, 1, 2, 4
         self.plot_reporter(resolution=resolution)
         end = time.time()
@@ -228,7 +243,7 @@ class MD_simulation:
             self.adjust_force_params(new_res)
             if self.free_start:
                 params = self.force_params.copy()
-                params[1] = params[7] = 0
+                params["ev_coef"] = params["ff_coef"] = 0
                 self.add_forcefield(params)
             else:
                 self.add_forcefield(self.force_params)
@@ -270,12 +285,15 @@ class MD_simulation:
                                 os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))))
 
 
-    def add_evforce(self, r=0.6, strength=4e1):
+    def add_evforce(self, formula_type="harmonic", r_min=0.6, coef=4e1):
         'Leonard-Jones potential for excluded volume'
-        self.ev_force = mm.CustomNonbondedForce('epsilon*(r-r_opt)^2*step(r_opt-r)*delta(frame1-frame2)')
-        self.ev_force.addGlobalParameter('r_opt', defaultValue=r)
+        force_formula = get_custom_force_formula(f_type="repulsive", f_formula=formula_type,
+                                                 l_bound=r_min, u_bound=r_min)
+        force_formula = force_formula.replace("r_l", "r_min")
 
-        self.ev_force.addGlobalParameter('epsilon', defaultValue=strength)
+        self.ev_force = mm.CustomNonbondedForce(f'epsilon_ev*{force_formula}*delta(frame1-frame2)')
+        self.ev_force.addGlobalParameter('r_min', defaultValue=r_min)
+        self.ev_force.addGlobalParameter('epsilon_ev', defaultValue=coef)
         self.ev_force.addPerParticleParameter('frame')
         
         for frame in range(self.n):
@@ -284,65 +302,93 @@ class MD_simulation:
         self.ev_force_index = self.system.addForce(self.ev_force)
 
 
-    def add_backbone(self, r=0.6, strength=1e4):
+    def add_backbone(self, formula_type="harmonic", r_opt=0.6, r_linear=0, coef=1e4):
         'Harmonic bond force between succesive beads'
-        self.bond_force = mm.HarmonicBondForce()
+        force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
+                                                 l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        force_formula = force_formula.replace("r_l", "r_l_bb")
+        force_formula = force_formula.replace("r_u", "r_u_bb")
+        force_formula = force_formula.replace("d", "d_bb")
+
+        self.bond_force = mm.CustomBondForce(f'epsilon_bb*{force_formula}')
+        self.bond_force.addGlobalParameter('r_l_bb', defaultValue=r_opt*0.8)
+        self.bond_force.addGlobalParameter('r_u_bb', defaultValue=r_opt*1.2)
+        self.bond_force.addGlobalParameter('d_bb', defaultValue=r_linear-r_opt*1.2)
+        self.bond_force.addGlobalParameter('epsilon_bb', defaultValue=coef)
+
         for frame in range(self.n):
             for i in range(self.m-1):
-                self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1, length=1.35, k=strength)
+                self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1)
         self.bb_force_index = self.system.addForce(self.bond_force)
 
 
-    def add_schic_contacts(self, r=0.3, strength=1e5):
+    def add_schic_contacts(self, formula_type="harmonic", r_opt=0.3, r_linear=0, coef=1e5):
         'Harmonic bond force between loci connected by a scHi-C contact'
-        self.sc_force = mm.HarmonicBondForce()
+        force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
+                                                 l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        force_formula = force_formula.replace("r_l", "r_l_sc")
+        force_formula = force_formula.replace("r_u", "r_u_sc")
+        force_formula = force_formula.replace("d", "d_sc")
+
+        self.sc_force = mm.CustomBondForce(f'epsilon_sc*{force_formula}')
+        self.sc_force.addPerBondParameter('r_l_sc')
+        self.sc_force.addPerBondParameter('r_u_sc')
+        self.sc_force.addGlobalParameter('d_sc', defaultValue=r_linear-r_opt*1.2)
+        self.sc_force.addGlobalParameter('epsilon_sc', defaultValue=coef)
+
         for frame in range(self.n):
             for i in range(self.m):
                 for j in range(i+1, self.m):
                     m_ij = self.heatmaps[frame][i, j]
                     if m_ij > 0:
-                        self.sc_force.addBond(frame*self.m + i, frame*self.m + j, length=r/m_ij**(1/3), k=strength)
+                        r_opt_contact = r_opt/m_ij**(1/3)
+                        self.sc_force.addBond(frame*self.m + i, frame*self.m + j, [r_opt_contact*0.8, r_opt_contact*1.2])
         self.sc_force_index = self.system.addForce(self.sc_force)
 
 
-    def add_between_frame_forces(self, r=0.4, strength=1e3):
+    def add_between_frame_forces(self, formula_type="harmonic", r_opt=0.4, r_linear=0, coef=1e3):
         'Harmonic bond force between same loci from different frames'
-        self.frame_force = mm.CustomBondForce('epsilon2*(r-r0)^2*step(r-r0)') # harmonic with flat beginning (only attractive part)
-        # self.frame_force = mm.CustomBondForce('epsilon2*(1-exp(-(r-r_thr)^2/2/r_thr^2))') # gaussian bond
-        # self.frame_force = mm.CustomBondForce('epsilon2*((1-exp(-(r-r_l)^2/2/r_l^2))*step(r_l-r) + (1-exp(-(r-r_u)^2/2/r_l^2))*step(r-r_u))') # flat-bottom (r_l, r_u) gaussian bond
-        # self.frame_force = mm.CustomBondForce('epsilon2*((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))') # flat-bottom (r_l, r_u) bond
-        # self.frame_force = mm.CustomBondForce('epsilon2*((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)*step(r_u+d-r) + d*(2*r-d-2*r_u)*step(r-r_u-d))') # flat-bottom (r_l, r_u) bond with linear end after r_u+d
+        force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
+                                                 l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        force_formula = force_formula.replace("r_l", "r_l_ff")
+        force_formula = force_formula.replace("r_u", "r_u_ff")
+        force_formula = force_formula.replace("d", "d_ff")
 
-        # self.frame_force.addGlobalParameter('r_u', defaultValue=r*0.5)
-        # self.frame_force.addGlobalParameter('r_l', defaultValue=r*1.5)
-        # self.frame_force.addGlobalParameter('d', defaultValue=r*0.2)
+        self.frame_force = mm.CustomBondForce(f'epsilon_ff*{force_formula}*step(r-r_l_ff)')
 
-        self.frame_force.addGlobalParameter('epsilon2', defaultValue=strength)
-        self.frame_force.addGlobalParameter('r_thr', defaultValue=r)
-        self.frame_force.addPerBondParameter("r0")
+        self.frame_force.addGlobalParameter('r_u_ff', defaultValue=r_opt*0.8)
+        self.frame_force.addGlobalParameter('r_l_ff', defaultValue=r_opt*1.2)
+        self.frame_force.addGlobalParameter('d_ff', defaultValue=r_linear-r_opt*1.2)
+        self.frame_force.addGlobalParameter('epsilon_ff', defaultValue=coef)
+        
         for frame in range(self.n-1):
             for locus in range(self.m):
-                self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus, [1000])
+                self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus)
         self.ff_force_index = self.system.addForce(self.frame_force)
 
 
-    def add_forcefield(self, params):
+    def add_forcefield(self, params: list):
         '''
-        Here is the definition of the forcefield.
+        Here is the definition of the force field.
 
-        There are the following energies:
-        - ev force: repelling LJ-like forcefield
-        - harmonic bond force: to connect adjacent beads.
+        Force field consists of the following components:
+        - ev force: repelling forcefield.
+        - backbone force: to connect adjacent beads.
+        - sc contact: to attract beads connected by a sc contact.
+        - frame force: to attract corresponding beads from adjacent frames.
         '''
         # self.add_evforce(r=0.4, strength=1e4)
         # self.add_backbone(r=0.2, strength=1e5)
         # self.add_schic_contacts(r=0.1, strength=1e5)
         # self.add_between_frame_forces(r=0.1, strength=1e4)
 
-        self.add_evforce(r=params[0], strength=params[1])
-        self.add_backbone(r=params[2], strength=params[3])
-        self.add_schic_contacts(r=params[4], strength=params[5])
-        self.add_between_frame_forces(r=params[6], strength=params[7])
+        self.add_evforce(formula_type=params["ev_formula"], r_min=params["ev_min_dist"], coef=params["ev_coef"])
+        self.add_backbone(formula_type=params["bb_formula"], r_opt=params["bb_opt_dist"], 
+                          r_linear=params["bb_lin_thresh"], coef=params["bb_coef"])
+        self.add_schic_contacts(formula_type=params["sc_formula"], r_opt=params["sc_opt_dist"], 
+                          r_linear=params["sc_lin_thresh"], coef=params["sc_coef"])
+        self.add_between_frame_forces(formula_type=params["ff_formula"], r_opt=params["ff_opt_dist"], 
+                          r_linear=params["ff_lin_thresh"], coef=params["ff_coef"])
 
 
     def plot_reporter(self, resolution: int):
@@ -364,35 +410,35 @@ class MD_simulation:
             row.cell("Parameter description")
             row = table.row()
             row.cell("force_params[0]")
-            row.cell(str(round(self.force_params[0],3)))
+            row.cell(str(round(self.force_params["ev_min_dist"],3)))
             row.cell("Excluded Volume (EV) minimal distance")
             row = table.row()
             row.cell("force_params[1]")
-            row.cell(str(round(self.force_params[1],3)))
+            row.cell(str(round(self.force_params["ev_coef"],3)))
             row.cell("Excluded Volume (EV) force coefficient")
             row = table.row()
             row.cell("force_params[2]")
-            row.cell(str(round(self.force_params[2],3)))
+            row.cell(str(round(self.force_params["bb_opt_dist"],3)))
             row.cell("Backbone (BB) optimal distance")
             row = table.row()
             row.cell("force_params[3]")
-            row.cell(str(round(self.force_params[3],3)))
+            row.cell(str(round(self.force_params["bb_coef"],3)))
             row.cell("Backbone (BB) force coefficient")
             row = table.row()
             row.cell("force_params[4]")
-            row.cell(str(round(self.force_params[4],3)))
+            row.cell(str(round(self.force_params["sc_opt_dist"],3)))
             row.cell("Single cell contact (SC) optimal distance")
             row = table.row()
             row.cell("force_params[5]")
-            row.cell(str(round(self.force_params[5],3)))
+            row.cell(str(round(self.force_params["sc_coef"],3)))
             row.cell("Single cell contact (SC) force coefficient")
             row = table.row()
             row.cell("force_params[6]")
-            row.cell(str(round(self.force_params[6],3)))
+            row.cell(str(round(self.force_params["ff_opt_dist"],3)))
             row.cell("Frame force (FF) optimal distance")
             row = table.row()
             row.cell("force_params[7]")
-            row.cell(str(round(self.force_params[7],3)))
+            row.cell(str(round(self.force_params["ff_coef"],3)))
             row.cell("Frame force (FF) coefficient")
 
         # # Page 1
@@ -455,7 +501,7 @@ class MD_simulation:
             ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
         ax[1][0].legend()
 
-        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[2])
+        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["bb_opt_dist"])
         ax[1][1].set_title("Mean backbone distance violation")
         ax[1][1].set_ylabel("")
         ax[1][1].set_xlabel("simulation step")
@@ -465,7 +511,7 @@ class MD_simulation:
         ax[1][1].axhline(0, linestyle='--', c="black")
         ax[1][1].legend()
 
-        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[4], self.heatmaps)
+        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["sc_opt_dist"], self.heatmaps)
         ax[2][0].set_title("Mean sc contact violation")
         ax[2][0].set_ylabel("")
         ax[2][0].set_xlabel("simulation step")
@@ -475,7 +521,7 @@ class MD_simulation:
         ax[2][0].axhline(0, linestyle='--', c="black")
         ax[2][0].legend()
 
-        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), self.force_params[6])
+        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["ff_opt_dist"])
         ax[2][1].set_title("Mean frame force violation")
         ax[2][1].set_ylabel("")
         ax[2][1].set_xlabel("simulation step")

@@ -56,15 +56,9 @@ def main(config_path: str='config.yaml'):
             write_mmcif(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
     # Run ChromMovie
-    f_params = [force_config["ev_min_dist"], force_config["ev_coef"],
-                force_config["bb_opt_dist"], force_config["bb_coef"],
-                force_config["sc_opt_dist"], force_config["sc_coef"],
-                force_config["ff_opt_dist"], force_config["ff_coef"]
-                ]
-    
     md = MD_simulation(main_config=main_config, sim_config=sim_config, heatmaps=heatmaps, contact_dfs=contact_dfs, output_path=main_config["output"], 
                        N_steps=sim_config["N_steps"], burnin=sim_config["burnin"], MC_step=sim_config["MC_step"], 
-                       platform=sim_config["platform"], force_params=f_params)
+                       platform=sim_config["platform"], force_params=force_config)
     md.run_pipeline(write_files=True, sim_step=sim_config["sim_step"])
 
 
