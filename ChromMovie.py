@@ -80,7 +80,7 @@ class MD_simulation:
         points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[1], bead_radius=self.force_params[1]/2)
         points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
 
-        write_mmcif(points, self.output_path+'/struct_init.cif')
+        write_mmcif(points, self.output_path+'/struct_00_init.cif')
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
@@ -88,7 +88,7 @@ class MD_simulation:
             write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
         # Define System
-        cif = PDBxFile(self.output_path+'/struct_init.cif')
+        cif = PDBxFile(self.output_path+'/struct_00_init.cif')
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
         self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
@@ -127,9 +127,8 @@ class MD_simulation:
             for i, res in enumerate(self.resolutions):
                 print(f'Running molecular dynamics at {resolution2text(res)} resolution ({i+1}/{len(self.resolutions)})...')
                 # Changing the system for a new resolution:
-                print(self.m)
-                self.resolution_change(new_res=res, sim_step=sim_step, setup=(i!=0))
-                print(self.m)
+                self.resolution_change(new_res=res, sim_step=sim_step, index=i+1, setup=(i!=0))
+
                 # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, step=0)
                 self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
@@ -138,7 +137,7 @@ class MD_simulation:
                 # Saving structure after resolution simulation:
                 frames = self.get_frames_positions_npy()
                 points = np.vstack(tuple(frames))
-                cif_path = self.output_path+f"/struct_res{resolution2text(res)}_ready.cif"
+                cif_path = self.output_path+f"/struct_{str(i+1).zfill(2)}_res{resolution2text(res)}_ready.cif"
                 write_mmcif(points, cif_path)
                 
 
@@ -184,7 +183,7 @@ class MD_simulation:
         return new_heatmaps
 
 
-    def resolution_change(self, new_res: int, sim_step: int, setup: bool=False):
+    def resolution_change(self, new_res: int, sim_step: int, index: int, setup: bool=False):
         """
         Prepares the system for the simulation in new resolution new_res.
         Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
@@ -200,7 +199,7 @@ class MD_simulation:
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
-        cif_path = self.output_path+f"/struct_res{resolution2text(new_res)}_init.cif"
+        cif_path = self.output_path+f"/struct_{str(index).zfill(2)}_res{resolution2text(new_res)}_init.cif"
         write_mmcif(points, cif_path)
 
         # Updating parameters:
