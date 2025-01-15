@@ -172,3 +172,20 @@ def get_custom_force_formula(f_type: str="attractive", f_formula: str="harmonic"
         raise(Exception("Could not find a correct formula for a force."))
     return formula
 
+
+def resolution2text(resolution: int):
+    """
+    Takes the resolution (in base pairs) as input and creates a human readable version of it.
+    For example resolution2text(1_000_000) returns "1Mb"
+    """
+    suffixes = ['', 'kb', 'Mb', 'Gb'] 
+    
+    # Find the appropriate suffix
+    for i, suffix in enumerate(suffixes):
+        if resolution < 1000:
+            break
+        resolution /= 1000.0
+    
+    formatted_num = f"{resolution:.1f}".rstrip('0').rstrip('.')
+    result = f"{formatted_num}{suffix}"
+    return result

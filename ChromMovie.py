@@ -61,7 +61,8 @@ class MD_simulation:
         self.step, self.burnin = MC_step, burnin//MC_step
         self.platform = platform
         self.force_params = force_params
-        self.resolutions = [float(res.strip())*1_000_000 for res in str(sim_config['resolutions']).split(",")]
+        self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
+        self.resolutions.sort(reverse=True)
 
     
     def run_pipeline(self, run_MD=True, sim_step=5, write_files=False, plots=False):
@@ -79,7 +80,7 @@ class MD_simulation:
         points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[1], bead_radius=self.force_params[1]/2)
         points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
 
-        write_mmcif(points, self.output_path+'/init_struct.cif')
+        write_mmcif(points, self.output_path+'/struct_init.cif')
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
@@ -87,7 +88,7 @@ class MD_simulation:
             write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
         # Define System
-        cif = PDBxFile(self.output_path+'/init_struct.cif')
+        cif = PDBxFile(self.output_path+'/struct_init.cif')
         forcefield = ForceField('forcefields/classic_sm_ff.xml')
         self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
@@ -122,19 +123,27 @@ class MD_simulation:
         if write_files and not os.path.exists(frame_path_cif): os.makedirs(frame_path_cif)
         
         # Run molecular dynamics simulation
-        
         if run_MD:
             for i, res in enumerate(self.resolutions):
-                print(f'Running molecular dynamics at {res/1_000_000}Mb resolution ({i+1}/{len(self.resolutions)})...')
-                if i != 0:
-                    self.resolution_change(new_res=res, sim_step=sim_step)
+                print(f'Running molecular dynamics at {resolution2text(res)} resolution ({i+1}/{len(self.resolutions)})...')
+                # Changing the system for a new resolution:
+                print(self.m)
+                self.resolution_change(new_res=res, sim_step=sim_step, setup=(i!=0))
+                print(self.m)
+                # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, step=0)
-                self.simulate_resolution(sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
+                self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
                                         params=params, free_start=free_start)
+                
+                # Saving structure after resolution simulation:
+                frames = self.get_frames_positions_npy()
+                points = np.vstack(tuple(frames))
+                cif_path = self.output_path+f"/struct_res{resolution2text(res)}_ready.cif"
+                write_mmcif(points, cif_path)
                 
 
 
-    def simulate_resolution(self, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: list, free_start: bool=True):
+    def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: list, free_start: bool=True):
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
@@ -148,14 +157,14 @@ class MD_simulation:
                 self.system.removeForce(self.ff_force_index-1)
                 self.add_between_frame_forces(r=params[6], strength=self.force_params[7]*t)
                 self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index = 3, 1, 2, 4
-        self.plot_reporter()
+        self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
 
         print(f'Simulation finished succesfully.\nMD finished in {elapsed/60:.2f} minutes.\n')
 
 
-    def get_heatmaps_from_dfs(self, res: float) -> list:
+    def get_heatmaps_from_dfs(self, res: int) -> list:
         """
         Creates a list of heatmaps according to a given resolution based on contact information in self.contact_dfs.
         """
@@ -175,49 +184,50 @@ class MD_simulation:
         return new_heatmaps
 
 
-    def resolution_change(self, new_res: float, sim_step: int):
+    def resolution_change(self, new_res: int, sim_step: int, setup: bool=False):
         """
         Prepares the system for the simulation in new resolution new_res.
         Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
         The OpenMM system is reinitailized and ready for a new simulation.
         """
-        # rescaling heatmaps:
+        # Rescaling heatmaps:
         self.heatmaps = self.get_heatmaps_from_dfs(new_res)
 
-        # interpolating structures:
+        # Interpolating structures:
         new_m = int(np.ceil(self.chrom_size / new_res))
         frames = self.get_frames_positions_npy()
         frames_new = [extrapolate_points(frame, new_m) for frame in frames]
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
-        write_mmcif(points, self.output_path+f"/struct_res{str(int(new_res))}.cif")
+        cif_path = self.output_path+f"/struct_res{resolution2text(new_res)}_init.cif"
+        write_mmcif(points, cif_path)
 
-        # updating parameters:
+        # Updating parameters:
         self.m = new_m
 
-        # Define System
-        cif = PDBxFile(self.output_path+f"/struct_res{str(int(new_res))}.cif")
-        forcefield = ForceField('forcefields/classic_sm_ff.xml')
-        self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
-        integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
+        if setup:
+            # Define System
+            cif = PDBxFile(cif_path)
+            forcefield = ForceField('forcefields/classic_sm_ff.xml')
+            self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
+            integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
-        # Add forces
-        print('Adding forces...')
-        self.free_start = free_start = True
-        if free_start:
-            params = self.force_params.copy()
-            params[1] = params[7] = 0
-            self.add_forcefield(params)
-        else:
-            self.add_forcefield(self.force_params)
+            # Add forces
+            print('Adding forces...')
+            self.free_start = free_start = True
+            if free_start:
+                params = self.force_params.copy()
+                params[1] = params[7] = 0
+                self.add_forcefield(params)
+            else:
+                self.add_forcefield(self.force_params)
 
-        # Prepare simulation
-        print('Minimizing energy...')
-        platform = mm.Platform.getPlatformByName(self.platform)
-        self.simulation = Simulation(cif.topology, self.system, integrator, platform)
-        self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
-        self.simulation.context.setPositions(cif.positions)
+            # Prepare simulation
+            platform = mm.Platform.getPlatformByName(self.platform)
+            self.simulation = Simulation(cif.topology, self.system, integrator, platform)
+            self.simulation.reporters.append(StateDataReporter(os.path.join(self.output_path, "energy.csv"), (self.N_steps*sim_step)//10, step=True, totalEnergy=True, potentialEnergy=True, temperature=True))
+            self.simulation.context.setPositions(cif.positions)
         
 
     def get_frames_positions_npy(self) -> list:
@@ -322,7 +332,7 @@ class MD_simulation:
         self.add_schic_contacts(r=params[4], strength=params[5])
         self.add_between_frame_forces(r=params[6], strength=params[7])
 
-    def plot_reporter(self):
+    def plot_reporter(self, resolution: int):
         print("Creating a simulation report...")
         "Creates a pdf file with reporter plots."
         pdf = FPDF()
@@ -468,8 +478,9 @@ class MD_simulation:
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
 
-        pdf.output(os.path.join(self.output_path, "simulation_report.pdf"))
+        pdf.output(os.path.join(self.output_path, f"simulation_report{resolution2text(resolution)}.pdf"))
         
+
 if __name__ == "__main__":
     # m = 40
     # structure_set = get_structure_01(frames=20, m=m, turns=5)
