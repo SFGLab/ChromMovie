@@ -64,6 +64,17 @@ class MD_simulation:
         self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
         self.resolutions.sort(reverse=True)
 
+
+    def adjust_force_params(self, force_params: list, resolution: int) -> list:
+        "Adjusts the force parameters addordingly to the current resolution of simulation."
+        dist_params = [force_params[0], force_params[2], force_params[4], force_params[6]]
+        coef_params = [force_params[1], force_params[3], force_params[5], force_params[7]]
+
+        dist_params = [d*pow(resolution/self.resolutions[-1], 1/3) for d in dist_params]
+
+        return [dist_params[0], coef_params[0], dist_params[1], coef_params[1], 
+                dist_params[2], coef_params[2], dist_params[3], coef_params[3]]
+        
     
     def run_pipeline(self, run_MD=True, sim_step=5, write_files=False, plots=False):
         '''
@@ -97,7 +108,7 @@ class MD_simulation:
         print('Adding forces...')
         self.free_start = free_start = True
         if free_start:
-            params = self.force_params.copy()
+            params = self.adjust_force_params(self.force_params.copy(), self.resolutions[0])
             params[1] = params[7] = 0
             self.add_forcefield(params)
         else:
@@ -216,7 +227,7 @@ class MD_simulation:
             print('Adding forces...')
             self.free_start = free_start = True
             if free_start:
-                params = self.force_params.copy()
+                params = self.adjust_force_params(self.force_params.copy(), new_res)
                 params[1] = params[7] = 0
                 self.add_forcefield(params)
             else:
@@ -293,6 +304,7 @@ class MD_simulation:
                         self.sc_force.addBond(frame*self.m + i, frame*self.m + j, length=r/m_ij**(1/3), k=strength)
         self.sc_force_index = self.system.addForce(self.sc_force)
 
+
     def add_between_frame_forces(self, r=0.4, strength=1e3):
         'Harmonic bond force between same loci from different frames'
         self.frame_force = mm.CustomBondForce('epsilon2*(r-r0)^2*step(r-r0)') # harmonic with flat beginning (only attractive part)
@@ -312,7 +324,8 @@ class MD_simulation:
             for locus in range(self.m):
                 self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus, [1000])
         self.ff_force_index = self.system.addForce(self.frame_force)
-        
+
+
     def add_forcefield(self, params):
         '''
         Here is the definition of the forcefield.
@@ -330,6 +343,7 @@ class MD_simulation:
         self.add_backbone(r=params[2], strength=params[3])
         self.add_schic_contacts(r=params[4], strength=params[5])
         self.add_between_frame_forces(r=params[6], strength=params[7])
+
 
     def plot_reporter(self, resolution: int):
         print("Creating a simulation report...")
