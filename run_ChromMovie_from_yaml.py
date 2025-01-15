@@ -65,7 +65,7 @@ def main(config_path: str='config.yaml'):
     md = MD_simulation(main_config=main_config, sim_config=sim_config, heatmaps=heatmaps, contact_dfs=contact_dfs, output_path=main_config["output"], 
                        N_steps=sim_config["N_steps"], burnin=sim_config["burnin"], MC_step=sim_config["MC_step"], 
                        platform=sim_config["platform"], force_params=f_params)
-    md.run_pipeline(write_files=True, plots=True, sim_step=sim_config["sim_step"])
+    md.run_pipeline(write_files=True, sim_step=sim_config["sim_step"])
 
 
 if __name__ == "__main__":

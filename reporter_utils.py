@@ -58,8 +58,8 @@ def test_mannwhitney(matrix, structure):
     return test.pvalue
 
 
-def get_sc_pvals(cif_folder: str, expected_dist: float, heatmaps: list) -> pd.DataFrame:
-    """Computes the mean difference between real distnaces between beads connected by sc contact and their expected distances."""
+def get_sc_pvals(cif_folder: str, heatmaps: list) -> pd.DataFrame:
+    """Computes the mean difference between real distances between beads connected by sc contact and their expected distances."""
     files = os.listdir(cif_folder)
     
     df = pd.DataFrame(columns=["step", "frame", "pval"])
@@ -73,7 +73,7 @@ def get_sc_pvals(cif_folder: str, expected_dist: float, heatmaps: list) -> pd.Da
 
 
 def get_sc_violation(cif_folder: str, expected_dist: float, heatmaps: list) -> pd.DataFrame:
-    """Computes the mean difference between real distnaces between beads connected by sc contact and their expected distances."""
+    """Computes the mean difference between real distances between beads connected by sc contact and their expected distances."""
     files = os.listdir(cif_folder)
     m = heatmaps[0].shape[0]
     lists_of_contacts = [[(i,j) for i in range(1, m) for j in range(i) if heatmaps[k][j, i]>0] for k in range(len(heatmaps))]
@@ -90,7 +90,7 @@ def get_sc_violation(cif_folder: str, expected_dist: float, heatmaps: list) -> p
 
 
 def get_ff_violation(cif_folder: str, expected_dist: float) -> pd.DataFrame:
-    """Computes the mean difference between real distnaces between beads connected by sc contact and their expected distances."""
+    """Computes the mean difference between real distances between beads connected by sc contact and their expected distances."""
     files = os.listdir(cif_folder)
     steps = [int(file.split("_")[0].split("step")[-1]) for file in files]
     frames = [int(file.split("_frame")[1].split(".")[0]) for file in files]

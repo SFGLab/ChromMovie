@@ -60,23 +60,25 @@ class MD_simulation:
         self.N_steps = N_steps
         self.step, self.burnin = MC_step, burnin//MC_step
         self.platform = platform
-        self.force_params = force_params
         self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
         self.resolutions.sort(reverse=True)
+        self.user_force_params = force_params
+        self.adjust_force_params(self.resolutions[0])
+        self.free_start = True
 
 
-    def adjust_force_params(self, force_params: list, resolution: int) -> list:
+    def adjust_force_params(self, resolution: int) -> list:
         "Adjusts the force parameters addordingly to the current resolution of simulation."
-        dist_params = [force_params[0], force_params[2], force_params[4], force_params[6]]
-        coef_params = [force_params[1], force_params[3], force_params[5], force_params[7]]
+        dist_params = [self.user_force_params[i] for i in [0, 2, 4, 6]]
+        coef_params = [self.user_force_params[i] for i in [1, 3, 5, 7]]
 
         dist_params = [d*pow(resolution/self.resolutions[-1], 1/3) for d in dist_params]
 
-        return [dist_params[0], coef_params[0], dist_params[1], coef_params[1], 
-                dist_params[2], coef_params[2], dist_params[3], coef_params[3]]
+        self.force_params = [dist_params[0], coef_params[0], dist_params[1], coef_params[1], 
+                            dist_params[2], coef_params[2], dist_params[3], coef_params[3]]
         
     
-    def run_pipeline(self, run_MD=True, sim_step=5, write_files=False, plots=False):
+    def run_pipeline(self, run_MD=True, sim_step=5, write_files=True):
         '''
         This is the basic function that runs the molecular simulation pipeline.
 
@@ -84,12 +86,11 @@ class MD_simulation:
         run_MD (bool): True if user wants to run molecular simulation (not only energy minimization).
         sim_step (int): the simulation step of Langevin integrator.
         write_files (bool): True if the user wants to save the structures that determine the simulation ensemble.
-        plots (bool): True if the user wants to see the output average heatmaps.
         '''
         # Define initial structure
         print('Building initial structure...')
-        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[1], bead_radius=self.force_params[1]/2)
-        points = np.vstack(tuple([points_init_frame+i*0.001 for i in range(self.n)]))
+        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params[2], bead_radius=self.force_params[2]/2)
+        points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params[2] for i in range(self.n)]))
 
         write_mmcif(points, self.output_path+'/struct_00_init.cif')
         path_init = os.path.join(self.output_path, "init")
@@ -106,9 +107,8 @@ class MD_simulation:
 
         # Add forces
         print('Adding forces...')
-        self.free_start = free_start = True
-        if free_start:
-            params = self.adjust_force_params(self.force_params.copy(), self.resolutions[0])
+        if self.free_start:
+            params = self.force_params.copy()
             params[1] = params[7] = 0
             self.add_forcefield(params)
         else:
@@ -143,7 +143,7 @@ class MD_simulation:
                 # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, step=0)
                 self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
-                                        params=params, free_start=free_start)
+                                        params=params, free_start=self.free_start)
                 
                 # Saving structure after resolution simulation:
                 frames = self.get_frames_positions_npy()
@@ -152,8 +152,8 @@ class MD_simulation:
                 write_mmcif(points, cif_path)
                 
 
-
     def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: list, free_start: bool=True):
+        """Runs a simulation for a given resolution and saves the pdf report."""
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
@@ -225,9 +225,9 @@ class MD_simulation:
 
             # Add forces
             print('Adding forces...')
-            self.free_start = free_start = True
-            if free_start:
-                params = self.adjust_force_params(self.force_params.copy(), new_res)
+            self.adjust_force_params(new_res)
+            if self.free_start:
+                params = self.force_params.copy()
                 params[1] = params[7] = 0
                 self.add_forcefield(params)
             else:
@@ -289,7 +289,7 @@ class MD_simulation:
         self.bond_force = mm.HarmonicBondForce()
         for frame in range(self.n):
             for i in range(self.m-1):
-                self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1, length=r, k=strength)
+                self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1, length=1.35, k=strength)
         self.bb_force_index = self.system.addForce(self.bond_force)
 
 
@@ -364,35 +364,35 @@ class MD_simulation:
             row.cell("Parameter description")
             row = table.row()
             row.cell("force_params[0]")
-            row.cell(str(self.force_params[0]))
+            row.cell(str(round(self.force_params[0],3)))
             row.cell("Excluded Volume (EV) minimal distance")
             row = table.row()
             row.cell("force_params[1]")
-            row.cell(str(self.force_params[1]))
+            row.cell(str(round(self.force_params[1],3)))
             row.cell("Excluded Volume (EV) force coefficient")
             row = table.row()
             row.cell("force_params[2]")
-            row.cell(str(self.force_params[2]))
+            row.cell(str(round(self.force_params[2],3)))
             row.cell("Backbone (BB) optimal distance")
             row = table.row()
             row.cell("force_params[3]")
-            row.cell(str(self.force_params[3]))
+            row.cell(str(round(self.force_params[3],3)))
             row.cell("Backbone (BB) force coefficient")
             row = table.row()
             row.cell("force_params[4]")
-            row.cell(str(self.force_params[4]))
+            row.cell(str(round(self.force_params[4],3)))
             row.cell("Single cell contact (SC) optimal distance")
             row = table.row()
             row.cell("force_params[5]")
-            row.cell(str(self.force_params[5]))
+            row.cell(str(round(self.force_params[5],3)))
             row.cell("Single cell contact (SC) force coefficient")
             row = table.row()
             row.cell("force_params[6]")
-            row.cell(str(self.force_params[6]))
+            row.cell(str(round(self.force_params[6],3)))
             row.cell("Frame force (FF) optimal distance")
             row = table.row()
             row.cell("force_params[7]")
-            row.cell(str(self.force_params[7]))
+            row.cell(str(round(self.force_params[7],3)))
             row.cell("Frame force (FF) coefficient")
 
         # # Page 1
@@ -539,4 +539,5 @@ if __name__ == "__main__":
 
     out_path = "./results/"
     md = MD_simulation(heatmaps, out_path, N_steps=100, burnin=5, MC_step=1, platform='CPU')
-    md.run_pipeline(write_files=True, plots=True, sim_step=100)
+    md.run_pipeline(sim_step=100, write_files=True)
+

@@ -74,11 +74,15 @@ def write_mmcif(points,cif_file_name='LE_init_struct.cif'):
 
 
 def mmcif2npy(positions_path):
+    """
+    Extracts numpy array (n,3) from cif file. 
+    Positions are in nanometers hence multiplication by 10 to convert to Angstroms.
+    """
     positions = PDBxFile(positions_path).positions
     m = len(positions)
     array = np.zeros((m, 3))
     for i, p in enumerate(positions):
-        array[i, :] = [p[j].real for j in range(3)]
+        array[i, :] = [p[j].real*10 for j in range(3)] 
     return array
 
 
