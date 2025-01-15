@@ -184,10 +184,6 @@ class MD_simulation:
         Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
         The OpenMM system is reinitailized and ready for a new simulation.
         """
-        # removing previous forcefield:
-        # for i in reversed(range(self.system.getNumForces())):
-        #     self.system.removeForce(i)
-
         # rescaling heatmaps:
         self.heatmaps = self.get_heatmaps_from_dfs(new_res)
 
@@ -195,26 +191,10 @@ class MD_simulation:
         new_m = int(np.ceil(self.chrom_size / new_res))
         frames = self.get_frames_positions_npy()
         frames_new = [extrapolate_points(frame, new_m) for frame in frames]
-        # positions = [Vec3(x, y, z) * u.nanometer for frame in frames_new for x, y, z in frame]
-
-        # new_topology = Topology()
-        # chain = new_topology.addChain()
-        # residue = new_topology.addResidue("NEW_RES", chain)
-        # for i, _ in enumerate(positions):
-        #     new_topology.addAtom(f"Atom{i+1}", Element.getByAtomicNumber(6), residue)
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
-        # print(points.shape, new_m, self.n)
         write_mmcif(points, self.output_path+f"/struct_res{str(int(new_res))}.cif")
-
-        # Recreate the system with the new topology
-        # forcefield = ForceField('forcefields/classic_sm_ff.xml')
-        # self.system = forcefield.createSystem(new_topology, nonbondedCutoff=1 * u.nanometer)
-
-        # Reinitialize the simulation with the new topology and positions
-        # self.simulation.context.reinitialize(preserveState=True)
-        # self.simulation.context.setPositions(positions)
 
         # updating parameters:
         self.m = new_m
@@ -235,7 +215,7 @@ class MD_simulation:
         else:
             self.add_forcefield(self.force_params)
 
-        # Minimize energy
+        # Prepare simulation
         print('Minimizing energy...')
         platform = mm.Platform.getPlatformByName(self.platform)
         self.simulation = Simulation(pdb.topology, self.system, integrator, platform)
