@@ -168,7 +168,7 @@ class MD_simulation:
                 self.save_state(frame_path_npy, frame_path_cif, step=i)
             # updating the repulsive and frame force strength:
             if free_start:
-                t = (i+1)/self.N_steps
+                t = np.arctan(10*(2*(i+1)/self.N_steps-1))/np.pi + 0.5
                 self.system.removeForce(self.ev_force_index)
                 self.add_evforce(formula_type=params["ev_formula"], r_min=params["ev_min_dist"], coef=params["ev_coef"]*t)
                 self.system.removeForce(self.ff_force_index-1)
