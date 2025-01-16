@@ -104,7 +104,7 @@ def get_ff_violation(cif_folder: str, expected_dist: float) -> pd.DataFrame:
     df = pd.DataFrame(columns=["step", "frame", "violation"])
 
     for step in range(min_step+1, max_step+1):
-        for frame in range(max_frame):
+        for frame in range(max_frame+1):
             structure_prev = mmcif2npy(os.path.join(cif_folder, "step{}_frame{}.cif".format(str(step-1).zfill(3), str(frame).zfill(3))))
             structure_curr = mmcif2npy(os.path.join(cif_folder, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))))
             diffs = [np.sqrt(np.sum((structure_prev[i, :]-structure_curr[i,:])**2))-expected_dist for i in range(structure_curr.shape[0])]
