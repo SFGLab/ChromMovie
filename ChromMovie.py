@@ -65,7 +65,6 @@ class MD_simulation:
         self.resolutions.sort(reverse=True)
         self.user_force_params = force_params
         self.adjust_force_params(self.resolutions[0])
-        self.free_start = self.user_force_params["ev_coef_evol"]
 
 
     def adjust_force_params(self, resolution: int) -> list:
@@ -153,7 +152,7 @@ class MD_simulation:
                 # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, step=0)
                 self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
-                                        params=params, free_start=self.free_start)
+                                        params=params)
                 
                 # Saving structure after resolution simulation:
                 frames = self.get_frames_positions_npy()
@@ -162,7 +161,7 @@ class MD_simulation:
                 write_mmcif(points, cif_path)
                 
 
-    def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: dict, free_start: bool=True) -> None:
+    def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: dict) -> None:
         """Runs a simulation for a given resolution and saves the pdf report."""
         start = time.time()
         for i in range(1, self.N_steps):
@@ -187,7 +186,7 @@ class MD_simulation:
                 if self.user_force_params["ff_coef_evol"]:
                     params["ff_coef"] *= t
                 self.add_forcefield(params)
-                
+
         self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
