@@ -87,13 +87,13 @@ def mmcif2npy(positions_path):
 
 
 def dist(p1: np.ndarray, p2: np.ndarray) -> float:
-    """Mierzy dystans w przestrzeni R^3"""
+    """Euclidean distance in R^3"""
     x1, y1, z1 = p1
     x2, y2, z2 = p2
     return ((x1 - x2) ** 2 + (y1 - y2) ** 2 + (z1 - z2) ** 2) ** 0.5  # faster than np.linalg.norm
 
 def random_versor() -> np.ndarray:
-    """Losuje wersor"""
+    """Random versor"""
     x = np.random.normal()
     y = np.random.normal()
     z = np.random.normal()
@@ -101,6 +101,8 @@ def random_versor() -> np.ndarray:
     return np.array([x/d, y/d, z/d])
 
 def self_avoiding_random_walk(n: int, step: float = 1.0, bead_radius: float = 0.5, epsilon: float = 0.001, two_dimensions=False) -> np.ndarray:
+    """Self avoiding random walk algorithm with the distance between consecutive beads equal to step 
+    and with a condition that no beads should be closer than bead_radius to each other."""
     potential_new_step = [0, 0, 0]
     while True:
         points = [np.array([0, 0, 0])]
