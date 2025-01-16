@@ -65,7 +65,7 @@ class MD_simulation:
         self.resolutions.sort(reverse=True)
         self.user_force_params = force_params
         self.adjust_force_params(self.resolutions[0])
-        self.free_start = True
+        self.free_start = self.user_force_params["ev_coef_evol"]
 
 
     def adjust_force_params(self, resolution: int) -> list:
@@ -113,13 +113,10 @@ class MD_simulation:
         integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
         # Add forces
-        print('Adding forces...')
+        params = self.force_params.copy()
         if self.free_start:
-            params = self.force_params.copy()
             params["ev_coef"] = params["ff_coef"] = 0
-            self.add_forcefield(params)
-        else:
-            self.add_forcefield(self.force_params)
+        self.add_forcefield(params)
 
         # Minimize energy
         print('Minimizing energy...')
@@ -232,14 +229,11 @@ class MD_simulation:
             integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
 
             # Add forces
-            print('Adding forces...')
             self.adjust_force_params(new_res)
+            params = self.force_params.copy()
             if self.free_start:
-                params = self.force_params.copy()
                 params["ev_coef"] = params["ff_coef"] = 0
-                self.add_forcefield(params)
-            else:
-                self.add_forcefield(self.force_params)
+            self.add_forcefield(params)
 
             # Prepare simulation
             platform = mm.Platform.getPlatformByName(self.platform)
