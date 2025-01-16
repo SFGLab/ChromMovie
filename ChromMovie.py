@@ -114,8 +114,14 @@ class MD_simulation:
 
         # Add forces
         params = self.force_params.copy()
-        if self.free_start:
-            params["ev_coef"] = params["ff_coef"] = 0
+        if self.user_force_params["ev_coef_evol"]:
+            params["ev_coef"] = 0
+        if self.user_force_params["bb_coef_evol"]:
+            params["bb_coef"] = 0
+        if self.user_force_params["sc_coef_evol"]:
+            params["sc_coef"] = 0
+        if self.user_force_params["ff_coef_evol"]:
+            params["ff_coef"] = 0
         self.add_forcefield(params)
 
         # Minimize energy
@@ -164,14 +170,24 @@ class MD_simulation:
             if i%self.step == 0 and i > self.burnin*self.step:
                 self.save_state(frame_path_npy, frame_path_cif, step=i)
             # updating the repulsive and frame force strength:
-            if free_start:
+            if self.user_force_params["ev_coef_evol"] or self.user_force_params["bb_coef_evol"] or \
+                self.user_force_params["sc_coef_evol"] or self.user_force_params["ff_coef_evol"]:
                 t = np.arctan(10*(2*(i+1)/self.N_steps-1))/np.pi + 0.5
+                self.system.removeForce(self.ff_force_index)
+                self.system.removeForce(self.sc_force_index)
+                self.system.removeForce(self.bb_force_index)
                 self.system.removeForce(self.ev_force_index)
-                self.add_evforce(formula_type=params["ev_formula"], r_min=params["ev_min_dist"], coef=params["ev_coef"]*t)
-                self.system.removeForce(self.ff_force_index-1)
-                self.add_between_frame_forces(formula_type=params["ff_formula"], r_opt=params["ff_opt_dist"], 
-                          r_linear=params["ff_lin_thresh"], coef=params["ff_coef"]*t)
-                self.ev_force_index, self.bb_force_index, self.sc_force_index, self.ff_force_index = 3, 1, 2, 4
+
+                if self.user_force_params["ev_coef_evol"]:
+                    params["ev_coef"] *= t
+                if self.user_force_params["bb_coef_evol"]:
+                    params["bb_coef"] *= t
+                if self.user_force_params["sc_coef_evol"]:
+                    params["sc_coef"] *= t
+                if self.user_force_params["ff_coef_evol"]:
+                    params["ff_coef"] *= t
+                self.add_forcefield(params)
+                
         self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
@@ -231,8 +247,14 @@ class MD_simulation:
             # Add forces
             self.adjust_force_params(new_res)
             params = self.force_params.copy()
-            if self.free_start:
-                params["ev_coef"] = params["ff_coef"] = 0
+            if self.user_force_params["ev_coef_evol"]:
+                params["ev_coef"] = 0
+            if self.user_force_params["bb_coef_evol"]:
+                params["bb_coef"] = 0
+            if self.user_force_params["sc_coef_evol"]:
+                params["sc_coef"] = 0
+            if self.user_force_params["ff_coef_evol"]:
+                params["ff_coef"] = 0
             self.add_forcefield(params)
 
             # Prepare simulation
