@@ -14,7 +14,7 @@ from sys import stdout
 from openmm.app import PDBxFile, ForceField, Simulation, StateDataReporter
 from create_insilico import *
 from ChromMovie_utils import *
-from reporter_utils import get_energy, get_mean_Rg, get_bb_violation, get_sc_violation, get_ff_violation
+from reporter_utils import get_energy, get_mean_Rg, get_ev_violation, get_bb_violation, get_sc_violation, get_ff_violation
 import shutil
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -484,64 +484,64 @@ class MD_simulation:
         # ax[1][0].legend()
 
         ax1 = ax[1][0]
-        df_ev = get_bb_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["ev_min_dist"])
+        df_ev = get_ev_violation(os.path.join(self.output_path, "frames_cif"), 0)
         ax1.set_title("Mean EV distance violation")
         ax1.set_ylabel("")
         ax1.set_xlabel("simulation step")
         for frame in range(self.n):
             df_temp = df_ev[df_ev["frame"]==frame].sort_values("step")
             ax1.plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        ax1.axhline(0, linestyle='--', c="black")
+        ax1.axhline(self.force_params["ev_min_dist"], linestyle='--', c="black")
         y_lim = ax1.get_ylim()
-        ax1.axhspan(y_lim[0]-100, 0, color='red', alpha=0.2)
+        ax1.axhspan(y_lim[0]-100, self.force_params["ev_min_dist"], color='red', alpha=0.2)
         ax1.set_ylim(y_lim)
         ax1.legend()
 
         ax1 = ax[1][1]
-        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["bb_opt_dist"])
+        df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), expected_dist=0)
         ax1.set_title("Mean backbone distance violation")
         ax1.set_ylabel("")
         ax1.set_xlabel("simulation step")
         for frame in range(self.n):
             df_temp = df_bb[df_bb["frame"]==frame].sort_values("step")
             ax1.plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        ax1.axhline(self.force_params["bb_opt_dist"]*0.2, linestyle='--', c="black")
-        ax1.axhline(0, linestyle='--', c="black")
-        ax1.axhline(-self.force_params["bb_opt_dist"]*0.2, linestyle='--', c="black")
+        ax1.axhline(self.force_params["bb_opt_dist"]*0.8, linestyle='--', c="black")
+        ax1.axhline(self.force_params["bb_opt_dist"], linestyle='--', c="black")
+        ax1.axhline(self.force_params["bb_opt_dist"]*1.2, linestyle='--', c="black")
         y_lim = ax1.get_ylim()
-        ax1.axhspan(self.force_params["bb_opt_dist"]*0.2, y_lim[1]+100, color='red', alpha=0.2)
-        ax1.axhspan(y_lim[0]-100, -self.force_params["bb_opt_dist"]*0.2, color='red', alpha=0.2)
+        ax1.axhspan(self.force_params["bb_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
+        ax1.axhspan(y_lim[0]-100, self.force_params["bb_opt_dist"]*0.8, color='red', alpha=0.2)
         ax1.set_ylim(y_lim)
         ax1.legend()
 
         ax1 = ax[2][0]
-        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["sc_opt_dist"], self.heatmaps)
+        df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), 0, self.heatmaps)
         ax1.set_title("Mean sc contact violation")
         ax1.set_ylabel("")
         ax1.set_xlabel("simulation step")
         for frame in range(self.n):
             df_temp = df_sc[df_sc["frame"]==frame].sort_values("step")
             ax1.plot(df_temp["step"], df_temp["pval"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        ax1.axhline(self.force_params["sc_opt_dist"]*0.2, linestyle='--', c="black")
-        ax1.axhline(0, linestyle='--', c="black")
-        ax1.axhline(-self.force_params["sc_opt_dist"]*0.2, linestyle='--', c="black")
+        ax1.axhline(self.force_params["sc_opt_dist"]*0.8, linestyle='--', c="black")
+        ax1.axhline(self.force_params["sc_opt_dist"], linestyle='--', c="black")
+        ax1.axhline(self.force_params["sc_opt_dist"]*1.2, linestyle='--', c="black")
         y_lim = ax1.get_ylim()
-        ax1.axhspan(self.force_params["sc_opt_dist"]*0.2, y_lim[1]+100, color='red', alpha=0.2)
-        ax1.axhspan(y_lim[0]-100, -self.force_params["sc_opt_dist"]*0.2, color='red', alpha=0.2)
+        ax1.axhspan(self.force_params["sc_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
+        ax1.axhspan(y_lim[0]-100, self.force_params["sc_opt_dist"]*0.8, color='red', alpha=0.2)
         ax1.set_ylim(y_lim)
         ax1.legend()
 
         ax1 = ax[2][1]
-        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["ff_opt_dist"])
+        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), 0)
         ax1.set_title("Mean frame force violation")
         ax1.set_ylabel("")
         ax1.set_xlabel("simulation step")
         for frame in range(self.n):
             df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
             ax1.plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        ax1.axhline(self.force_params["ff_opt_dist"]*0.2, linestyle='--', c="black")
+        ax1.axhline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
         y_lim = ax1.get_ylim()
-        ax1.axhspan(self.force_params["ff_opt_dist"]*0.2, y_lim[1]+100, color='red', alpha=0.2)
+        ax1.axhspan(self.force_params["ff_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
         ax1.set_ylim(y_lim)
         ax1.legend()
 
