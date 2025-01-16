@@ -33,6 +33,21 @@ def get_mean_Rg(cif_folder: str) -> pd.DataFrame:
     return df
 
 
+def get_ev_violation(cif_folder: str, min_dist: float) -> pd.DataFrame:
+    """Computes the mean difference between real distances between beads and their expected distance."""
+    files = os.listdir(cif_folder)
+    
+    df = pd.DataFrame(columns=["step", "frame", "violation"])
+    for file in files:
+        step = int(file.split("_")[0].split("step")[-1])
+        frame = int(file.split("_frame")[1].split(".")[0])
+        structure = mmcif2npy(os.path.join(cif_folder, file))
+        m = structure.shape[0]
+        diffs = [np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-min_dist for i in range(m-1) for j in range(i+1, m)]
+        df.loc[df.shape[0]] = [step, frame, np.mean(diffs)]
+    return df
+
+
 def get_bb_violation(cif_folder: str, expected_dist: float) -> pd.DataFrame:
     """Computes the mean difference between real distances between beads and their expected distance."""
     files = os.listdir(cif_folder)
