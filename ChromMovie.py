@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import openmm as mm
 import openmm.unit as u
-from sys import stdout
 from openmm.app import PDBxFile, ForceField, Simulation, StateDataReporter
 from create_insilico import *
 from ChromMovie_utils import *
@@ -402,14 +401,18 @@ class MD_simulation:
         print("Creating a simulation report...")
         "Creates a pdf file with reporter plots."
         pdf = FPDF()
-        # Page 0
+        font_main = 15
+        font_section = 10
+        font_table = 8
+        # --------------------- Page 0
         pdf.add_page()
-        pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_main)
+        pdf.cell(0, font_section, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
 
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 12, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_section)
+        pdf.cell(0, font_section, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
 
+        pdf.set_font('helvetica', size=font_table)
         with pdf.table(col_widths=(40, 30, 120)) as table:
             row = table.row()
             row.cell("Parameter")
@@ -469,15 +472,15 @@ class MD_simulation:
             row.cell(str(round(self.force_params["ff_coef"],3)))
             row.cell("Frame force (FF) coefficient")
 
-        # # Page 1
+        # --------------------- Page 1
         pdf.add_page()
-        pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_main)
+        pdf.cell(0, font_section, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
 
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 12, text="Forces functional forms", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_section)
+        pdf.cell(0, int(font_section/2), text="Forces functional forms", new_x="LMARGIN", new_y="NEXT")
 
-        fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
+        fig, ax = plt.subplots(1, 4, figsize=(16, 3.8), dpi=300)
         y_max = 0
 
         x = np.linspace(0, self.force_params["ev_min_dist"]*1.5, 100)
@@ -486,6 +489,7 @@ class MD_simulation:
         y = [self.force_params["ev_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[0].plot(x, y)
+        ax[0].axvline(self.force_params["ev_min_dist"], linestyle='--', c="black")
 
         if self.force_params["bb_formula"] == "gaussian":
             x = np.linspace(0, self.force_params["bb_opt_dist"]*4, 100)
@@ -496,6 +500,9 @@ class MD_simulation:
         y = [self.force_params["bb_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[1].plot(x, y)
+        ax[1].axvline(self.force_params["bb_opt_dist"]*0.8, linestyle='--', c="black")
+        ax[1].axvline(self.force_params["bb_opt_dist"], linestyle='--', c="black")
+        ax[1].axvline(self.force_params["bb_opt_dist"]*1.2, linestyle='--', c="black")
 
         if self.force_params["sc_formula"] == "gaussian":
             x = np.linspace(0, self.force_params["sc_opt_dist"]*4, 100)
@@ -506,6 +513,9 @@ class MD_simulation:
         y = [self.force_params["sc_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[2].plot(x, y)
+        ax[2].axvline(self.force_params["sc_opt_dist"]*0.8, linestyle='--', c="black")
+        ax[2].axvline(self.force_params["sc_opt_dist"], linestyle='--', c="black")
+        ax[2].axvline(self.force_params["sc_opt_dist"]*1.2, linestyle='--', c="black")
         
         if self.force_params["ff_formula"] == "gaussian":
             x = np.linspace(0, self.force_params["ff_opt_dist"]*4, 100)
@@ -516,6 +526,8 @@ class MD_simulation:
         y = [self.force_params["ff_coef"]*f(xi) if xi>self.force_params["ff_opt_dist"]*1.2 else 0 for xi in x ]
         y_max = max(y_max, np.max(y))
         ax[3].plot(x, y)
+        ax[3].axvline(0, linestyle='--', c="black")
+        ax[3].axvline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
         
         for i, code in enumerate(["ev", "bb", "sc", "ff"]):
             ax[i].set_ylim((-y_max/30, y_max))
@@ -535,10 +547,10 @@ class MD_simulation:
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
 
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 12, text="Forces coefficients", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_section)
+        pdf.cell(0, int(font_section/2), text="Forces coefficients", new_x="LMARGIN", new_y="NEXT")
 
-        fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
+        fig, ax = plt.subplots(1, 4, figsize=(16, 3.8), dpi=300)
         for i, code in enumerate(["ev", "bb", "sc", "ff"]):
             if self.force_params[f"{code}_coef_evol"]:
                 x = np.linspace(0, 1, 100)
@@ -553,40 +565,12 @@ class MD_simulation:
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
 
-        # # Page 2
-        pdf.add_page()
-        pdf.set_font('helvetica', size=20)
-        pdf.cell(0, 12, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
-
-        pdf.set_font('helvetica', size=12)
-        pdf.cell(0, 12, text="Simulation metrics", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font('helvetica', size=font_section)
+        pdf.cell(0, font_section, text="Mean distances according to different forces", new_x="LMARGIN", new_y="NEXT")
 
         cmap = mpl.colormaps['coolwarm']
-
-        df_energy = get_energy(os.path.join(self.output_path, "energy.csv"))
-        fig, ax = plt.subplots(3, 2, figsize=(10, 12), dpi=300)
-        ax[0][0].set_title("Energy")
-        ax[0][0].set_ylabel("kJ/mole")
-        ax[0][0].set_xlabel("simulation step")
-        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Potential Energy (kJ/mole)"], label="Potential E")
-        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Total Energy (kJ/mole)"], label="Total E")
-        ax[0][0].legend()
-
-        ax[0][1].set_title("Temperature")
-        ax[0][1].set_ylabel("K")
-        ax[0][1].set_xlabel("simulation step")
-        ax[0][1].plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
-
-        # df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_cif"))
-        # ax[1][0].set_title("Mean radius of gyration")
-        # ax[1][0].set_ylabel("Rg")
-        # ax[1][0].set_xlabel("simulation step")
-        # for frame in range(self.n):
-        #     df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
-        #     ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        # ax[1][0].legend()
-
-        ax1 = ax[1][0]
+        fig, ax = plt.subplots(2, 2, figsize=(10, 7), dpi=300)
+        ax1 = ax[0][0]
         df_ev = get_ev_violation(os.path.join(self.output_path, "frames_cif"), 0)
         ax1.set_title("Mean EV distance violation")
         ax1.set_ylabel("")
@@ -600,7 +584,7 @@ class MD_simulation:
         ax1.set_ylim(y_lim)
         ax1.legend()
 
-        ax1 = ax[1][1]
+        ax1 = ax[0][1]
         df_bb = get_bb_violation(os.path.join(self.output_path, "frames_cif"), expected_dist=0)
         ax1.set_title("Mean backbone distance violation")
         ax1.set_ylabel("")
@@ -617,7 +601,7 @@ class MD_simulation:
         ax1.set_ylim(y_lim)
         ax1.legend()
 
-        ax1 = ax[2][0]
+        ax1 = ax[1][0]
         df_sc = get_sc_violation(os.path.join(self.output_path, "frames_cif"), 0, self.heatmaps)
         ax1.set_title("Mean sc contact violation")
         ax1.set_ylabel("")
@@ -634,7 +618,7 @@ class MD_simulation:
         ax1.set_ylim(y_lim)
         ax1.legend()
 
-        ax1 = ax[2][1]
+        ax1 = ax[1][1]
         df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), 0)
         ax1.set_title("Mean frame force violation")
         ax1.set_ylabel("")
@@ -648,6 +632,45 @@ class MD_simulation:
         ax1.axhspan(self.force_params["ff_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
         ax1.set_ylim(y_lim)
         ax1.legend()
+
+        plt.tight_layout()
+        canvas = FigureCanvas(fig)
+        canvas.draw()
+        img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
+        pdf.image(img, w=pdf.epw)
+
+        # --------------------- Page 2
+        pdf.add_page()
+        pdf.set_font('helvetica', size=font_main)
+        pdf.cell(0, font_section, text="ChromMovie simulation reporter", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_font('helvetica', size=font_section)
+        pdf.cell(0, font_section, text="Simulation metrics", new_x="LMARGIN", new_y="NEXT")
+
+        df_energy = get_energy(os.path.join(self.output_path, "energy.csv"))
+        fig, ax = plt.subplots(3, 2, figsize=(10, 12), dpi=300)
+        ax[0][0].set_title("Energy")
+        ax[0][0].set_ylabel("kJ/mole")
+        ax[0][0].set_xlabel("simulation step")
+        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Potential Energy (kJ/mole)"], label="Potential E")
+        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Total Energy (kJ/mole)"], label="Total E")
+        ax[0][0].legend()
+
+        ax[0][1].set_title("Temperature")
+        ax[0][1].set_ylabel("K")
+        ax[0][1].set_xlabel("simulation step")
+        ax[0][1].plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
+
+        df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_cif"))
+        ax[1][0].set_title("Mean radius of gyration")
+        ax[1][0].set_ylabel("Rg")
+        ax[1][0].set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
+            ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax[1][0].legend()
+
+        
 
         plt.tight_layout()
         canvas = FigureCanvas(fig)
