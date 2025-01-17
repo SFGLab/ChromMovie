@@ -201,3 +201,24 @@ def get_local_variability(cif_folder: str, n: int) -> pd.DataFrame:
         df.loc[df.shape[0]] = [pos, get_rg(points)]
 
     return df
+
+
+def get_local_sc_violation(cif_folder: str, expected_dist: float, n: int, heatmaps: list) -> pd.DataFrame:
+    """Computes the mean difference between real distances between beads connected by sc contact and their expected distances."""
+    files = os.listdir(cif_folder)
+    steps = [int(file.split("_")[0].split("step")[-1]) for file in files]
+    final_step = np.max(steps)
+    m = heatmaps[0].shape[0]
+    lists_of_contacts = [[(i,j) for i in range(1, m) for j in range(i) if heatmaps[k][j, i]>0] for k in range(len(heatmaps))]
+    df = pd.DataFrame(columns=["pos", "frame", "sum_viol"])
+    
+    last_step_files = [os.path.join(cif_folder, f"step{str(final_step).zfill(3)}_frame{str(frame).zfill(3)}.cif") for frame in range(n)]
+    structures = [mmcif2npy(file) for file in last_step_files]
+    for pos in range(structures[0].shape[0]):
+        for frame in range(n):
+            structure = structures[frame]
+            contacts = [ (i,j) for (i, j) in lists_of_contacts[frame] if i==pos or j==pos]
+            viols = [np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-expected_dist for (i, j) in contacts]
+            viols = [v for v in viols if v>0]
+            df.loc[df.shape[0]] = [pos, frame, np.sum(viols)]
+    return df

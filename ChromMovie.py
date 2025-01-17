@@ -690,6 +690,14 @@ class MD_simulation:
         ax1.set_xlabel("Structure bead")
         ax1.plot(df_rg["pos"], df_rg["rg"])
 
+        ax1 = ax[2][1]
+        df_loc_v = get_local_sc_violation(os.path.join(self.output_path, "frames_cif"), self.force_params["sc_opt_dist"]*1.2, self.n, self.heatmaps)
+        df_loc_v = df_loc_v.groupby("pos").sum().reset_index()
+        ax1.set_title("Local violation of sc contacts (last step only)")
+        ax1.set_ylabel("Sum of sc contact violation")
+        ax1.set_xlabel("Structure bead")
+        ax1.plot(df_loc_v["pos"], df_loc_v["sum_viol"])
+
         plt.tight_layout()
         canvas = FigureCanvas(fig)
         canvas.draw()
