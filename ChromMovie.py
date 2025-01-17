@@ -13,7 +13,7 @@ import openmm.unit as u
 from openmm.app import PDBxFile, ForceField, Simulation, StateDataReporter
 from create_insilico import *
 from ChromMovie_utils import *
-from reporter_utils import get_energy, get_mean_Rg, get_ev_violation, get_bb_violation, get_sc_violation, get_ff_violation
+from reporter_utils import get_energy, get_mean_Rg, get_ev_violation, get_bb_violation, get_sc_violation, get_ff_violation, get_ps_curve_alpha
 import shutil
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -649,28 +649,39 @@ class MD_simulation:
 
         df_energy = get_energy(os.path.join(self.output_path, "energy.csv"))
         fig, ax = plt.subplots(3, 2, figsize=(10, 12), dpi=300)
-        ax[0][0].set_title("Energy")
-        ax[0][0].set_ylabel("kJ/mole")
-        ax[0][0].set_xlabel("simulation step")
-        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Potential Energy (kJ/mole)"], label="Potential E")
-        ax[0][0].plot(df_energy["#\"Step\""], df_energy["Total Energy (kJ/mole)"], label="Total E")
-        ax[0][0].legend()
+        ax1 = ax[0][0]
+        ax1.set_title("Energy")
+        ax1.set_ylabel("kJ/mole")
+        ax1.set_xlabel("simulation step")
+        ax1.plot(df_energy["#\"Step\""], df_energy["Potential Energy (kJ/mole)"], label="Potential E")
+        ax1.plot(df_energy["#\"Step\""], df_energy["Total Energy (kJ/mole)"], label="Total E")
+        ax1.legend()
 
-        ax[0][1].set_title("Temperature")
-        ax[0][1].set_ylabel("K")
-        ax[0][1].set_xlabel("simulation step")
-        ax[0][1].plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
+        ax1 = ax[0][1]
+        ax1.set_title("Temperature")
+        ax1.set_ylabel("K")
+        ax1.set_xlabel("simulation step")
+        ax1.plot(df_energy["#\"Step\""], df_energy["Temperature (K)"])
 
+        ax1 = ax[1][0]
         df_rg = get_mean_Rg(os.path.join(self.output_path, "frames_cif"))
-        ax[1][0].set_title("Mean radius of gyration")
-        ax[1][0].set_ylabel("Rg")
-        ax[1][0].set_xlabel("simulation step")
+        ax1.set_title("Mean radius of gyration")
+        ax1.set_ylabel("Rg")
+        ax1.set_xlabel("simulation step")
         for frame in range(self.n):
             df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
-            ax[1][0].plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
-        ax[1][0].legend()
+            ax1.plot(df_temp["step"], df_temp["Rg"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax1.legend()
 
-        
+        ax1 = ax[1][1]
+        df_rg = get_ps_curve_alpha(os.path.join(self.output_path, "frames_cif"), self.force_params["sc_opt_dist"]*1.2)
+        ax1.set_title("P(s) curve \u03B1 coefficient")
+        ax1.set_ylabel("\u03B1")
+        ax1.set_xlabel("simulation step")
+        for frame in range(self.n):
+            df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
+            ax1.plot(df_temp["step"], df_temp["alpha"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+        ax1.legend()
 
         plt.tight_layout()
         canvas = FigureCanvas(fig)
