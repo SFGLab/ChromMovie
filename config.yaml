@@ -97,8 +97,8 @@ simulation:
 forcefield:
   ev_formula: harmonic
   ev_min_dist: 1.0
-  ev_coef: 1000.0
-  ev_coef_evol: true
+  ev_coef: 40.0
+  ev_coef_evol: false
   bb_formula: harmonic
   bb_opt_dist: 1.0
   bb_lin_thresh: 1.0
@@ -110,7 +110,7 @@ forcefield:
   sc_coef: 1000.0
   sc_coef_evol: false
   ff_formula: harmonic
-  ff_opt_dist: 1.0
-  ff_lin_thresh: 2.0
+  ff_opt_dist: 0.1
+  ff_lin_thresh: 0.2
   ff_coef: 1000.0
-  ff_coef_evol: true
+  ff_coef_evol: false

@@ -483,7 +483,7 @@ class MD_simulation:
         x = np.linspace(0, self.force_params["ev_min_dist"]*1.5, 100)
         f = formula2lambda(self.ev_formula, l_bound=self.force_params["ev_min_dist"], 
                         u_bound=self.force_params["ev_min_dist"], u_linear=self.force_params["ev_min_dist"])
-        y = [f(xi) for xi in x]
+        y = [self.force_params["ev_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[0].plot(x, y)
 
@@ -493,7 +493,7 @@ class MD_simulation:
             x = np.linspace(0, self.force_params["bb_opt_dist"]*2.5, 100)
         f = formula2lambda(self.bb_formula, l_bound=self.force_params["bb_opt_dist"]*0.8, 
                         u_bound=self.force_params["bb_opt_dist"]*1.2, u_linear=self.force_params["bb_lin_thresh"])
-        y = [f(xi) for xi in x]
+        y = [self.force_params["bb_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[1].plot(x, y)
 
@@ -503,7 +503,7 @@ class MD_simulation:
             x = np.linspace(0, self.force_params["sc_opt_dist"]*2.5, 100)
         f = formula2lambda(self.sc_formula, l_bound=self.force_params["sc_opt_dist"]*0.8, 
                         u_bound=self.force_params["sc_opt_dist"]*1.2, u_linear=self.force_params["sc_lin_thresh"])
-        y = [f(xi) for xi in x]
+        y = [self.force_params["sc_coef"]*f(xi) for xi in x]
         y_max = max(y_max, np.max(y))
         ax[2].plot(x, y)
         
@@ -513,7 +513,7 @@ class MD_simulation:
             x = np.linspace(0, self.force_params["ff_opt_dist"]*2.5, 100)
         f = formula2lambda(self.ff_formula, l_bound=self.force_params["ff_opt_dist"]*0.8, 
                         u_bound=self.force_params["ff_opt_dist"]*1.2, u_linear=self.force_params["ff_lin_thresh"])
-        y = [f(xi) if xi>self.force_params["ff_opt_dist"]*1.2 else 0 for xi in x ]
+        y = [self.force_params["ff_coef"]*f(xi) if xi>self.force_params["ff_opt_dist"]*1.2 else 0 for xi in x ]
         y_max = max(y_max, np.max(y))
         ax[3].plot(x, y)
         
@@ -639,9 +639,10 @@ class MD_simulation:
         ax1.set_title("Mean frame force violation")
         ax1.set_ylabel("")
         ax1.set_xlabel("simulation step")
-        for frame in range(self.n):
+        for frame in range(self.n-1):
             df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
-            ax1.plot(df_temp["step"], df_temp["violation"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
+            ax1.plot(df_temp["step"], df_temp["violation"], label=f"frames {frame}~{frame+1}" if frame==0 or frame==self.n-2 else "_nolegend_", c=cmap(frame/self.n))
+        ax1.axhline(0, linestyle='--', c="black")
         ax1.axhline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
         y_lim = ax1.get_ylim()
         ax1.axhspan(self.force_params["ff_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
