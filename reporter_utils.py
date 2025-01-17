@@ -7,7 +7,7 @@ import pandas as pd
 import os
 from scipy.spatial import distance_matrix
 from scipy.stats import wilcoxon, mannwhitneyu
-from scipy.spatial.distance import pdist, squareform
+from scipy.spatial import distance_matrix
 from ChromMovie_utils import mmcif2npy
 
 def get_energy(energy_file: str) -> pd.DataFrame:
@@ -152,8 +152,9 @@ def compute_contact_probability(positions: np.ndarray, d_c: float=1.0) -> float:
     """
     m = positions.shape[0]
 
-    dist_matrix = squareform(pdist(positions))
-    contact_matrix = (dist_matrix < d_c).astype(int)
+    dist_matrix = distance_matrix(positions, positions)
+    threshold = d_c if d_c is not None else np.percentile(dist_matrix, 25)
+    contact_matrix = (dist_matrix < threshold).astype(int)
 
     # Compute contact probability P(s)
     max_s = m - 1
@@ -170,7 +171,6 @@ def compute_contact_probability(positions: np.ndarray, d_c: float=1.0) -> float:
     log_Ps = np.log(P_s[valid_idx])
 
     alpha, _ = np.polyfit(log_s, log_Ps, 1)
-
     return -alpha
 
 

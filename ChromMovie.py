@@ -674,7 +674,7 @@ class MD_simulation:
         ax1.legend()
 
         ax1 = ax[1][1]
-        df_rg = get_ps_curve_alpha(os.path.join(self.output_path, "frames_cif"), self.force_params["sc_opt_dist"]*1.2)
+        df_rg = get_ps_curve_alpha(os.path.join(self.output_path, "frames_cif"), None)
         ax1.set_title("P(s) curve \u03B1 coefficient")
         ax1.set_ylabel("\u03B1")
         ax1.set_xlabel("simulation step")
