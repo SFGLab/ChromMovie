@@ -641,7 +641,7 @@ class MD_simulation:
         ax1.set_xlabel("simulation step")
         for frame in range(self.n-1):
             df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
-            ax1.plot(df_temp["step"], df_temp["violation"], label=f"frames {frame}~{frame+1}" if frame==0 or frame==self.n-2 else "_nolegend_", c=cmap(frame/self.n))
+            ax1.plot(df_temp["step"], df_temp["violation"], label=f"frames {frame}~{frame+1}" if frame==0 or frame==self.n-2 else "_nolegend_", c=cmap(frame/(self.n-1)))
         ax1.axhline(0, linestyle='--', c="black")
         ax1.axhline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
         y_lim = ax1.get_ylim()
