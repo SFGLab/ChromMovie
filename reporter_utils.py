@@ -44,7 +44,15 @@ def get_ev_violation(cif_folder: str, min_dist: float) -> pd.DataFrame:
         frame = int(file.split("_frame")[1].split(".")[0])
         structure = mmcif2npy(os.path.join(cif_folder, file))
         m = structure.shape[0]
-        diffs = [np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-min_dist for i in range(m-1) for j in range(i+1, m)]
+        if m <= 60:
+            diffs = [np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-min_dist for i in range(m-1) for j in range(i+1, m)]
+        else:
+            diffs = []
+            for _ in range(1_000):
+                i = np.random.randint(m)
+                j = np.random.randint(m)
+                if i<j:
+                    diffs.append(np.sqrt(np.sum((structure[i, :]-structure[j,:])**2))-min_dist)
         df.loc[df.shape[0]] = [step, frame, np.mean(diffs)]
     return df
 
@@ -144,31 +152,26 @@ def compute_contact_probability(positions: np.ndarray, d_c: float=1.0) -> float:
     """
     m = positions.shape[0]
 
-    # Compute pairwise Euclidean distance matrix
     dist_matrix = squareform(pdist(positions))
-
-    # Define contact matrix (1 if distance < d_c, else 0)
     contact_matrix = (dist_matrix < d_c).astype(int)
 
     # Compute contact probability P(s)
     max_s = m - 1
-    s_values = np.arange(1, max_s)  # Genomic distances
+    s_values = np.arange(1, max_s)
     P_s = np.zeros_like(s_values, dtype=float)
 
     for i, s in enumerate(s_values):
         contacts = [contact_matrix[j, j+s] for j in range(m - s)]
-        P_s[i] = np.mean(contacts)  # Fraction of contacts for distance s
+        P_s[i] = np.mean(contacts)
 
     # Fit power-law exponent alpha using log-log linear regression
-    valid_idx = P_s > 0  # Avoid log(0)
+    valid_idx = P_s > 0 
     log_s = np.log(s_values[valid_idx])
     log_Ps = np.log(P_s[valid_idx])
 
-    alpha, _ = np.polyfit(log_s, log_Ps, 1)  # Fit log-log plot
-    alpha = -alpha  # Since we fit log P(s) = -alpha log s + C
+    alpha, _ = np.polyfit(log_s, log_Ps, 1)
 
-    # return s_values, P_s, alpha
-    return alpha
+    return -alpha
 
 
 def get_ps_curve_alpha(cif_folder: str, d_c: float=1.0) -> pd.DataFrame:
