@@ -185,12 +185,12 @@ class MD_simulation:
                 if self.user_force_params["ff_coef_evol"]:
                     params["ff_coef"] *= t
                 self.add_forcefield(params)
-
+        
+        print(f'Simulation finished succesfully.')
         self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
-
-        print(f'Simulation finished succesfully.\nMD finished in {elapsed/60:.2f} minutes.\n')
+        print(f'MD round finished in {elapsed/60:.2f} minutes.\n')
 
 
     def get_heatmaps_from_dfs(self, res: int) -> list:
@@ -398,7 +398,7 @@ class MD_simulation:
 
 
     def plot_reporter(self, resolution: int) -> None:
-        print("Creating a simulation report...")
+        print("Creating simulation report...")
         "Creates a pdf file with reporter plots."
         pdf = FPDF()
         font_main = 15
