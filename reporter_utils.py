@@ -187,3 +187,17 @@ def get_ps_curve_alpha(cif_folder: str, d_c: float=1.0) -> pd.DataFrame:
         df.loc[df.shape[0]] = [step, frame, alpha]
     return df
 
+
+def get_local_variability(cif_folder: str, n: int) -> pd.DataFrame:
+    """Compute Rg-like variability throughout all frames per locus at the final step of simulation."""
+    files = os.listdir(cif_folder)
+    steps = [int(file.split("_")[0].split("step")[-1]) for file in files]
+    final_step = np.max(steps)
+
+    df = pd.DataFrame(columns=["pos", "rg"])
+    structures = [mmcif2npy(os.path.join(cif_folder, f"step{str(final_step).zfill(3)}_frame{str(frame).zfill(3)}.cif")) for frame in range(n)]
+    for pos in range(structures[0].shape[0]):
+        points = np.array([structures[j][pos] for j in range(len(structures))])
+        df.loc[df.shape[0]] = [pos, get_rg(points)]
+
+    return df

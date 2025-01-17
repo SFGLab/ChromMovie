@@ -13,7 +13,7 @@ import openmm.unit as u
 from openmm.app import PDBxFile, ForceField, Simulation, StateDataReporter
 from create_insilico import *
 from ChromMovie_utils import *
-from reporter_utils import get_energy, get_mean_Rg, get_ev_violation, get_bb_violation, get_sc_violation, get_ff_violation, get_ps_curve_alpha
+from reporter_utils import *
 import shutil
 
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
@@ -682,6 +682,13 @@ class MD_simulation:
             df_temp = df_rg[df_rg["frame"]==frame].sort_values("step")
             ax1.plot(df_temp["step"], df_temp["alpha"], label=f"frame {frame}" if frame==0 or frame==self.n-1 else "_nolegend_", c=cmap(frame/self.n))
         ax1.legend()
+
+        ax1 = ax[2][0]
+        df_rg = get_local_variability(os.path.join(self.output_path, "frames_cif"), self.n)
+        ax1.set_title("Local loci variability throughout frames (last step only)")
+        ax1.set_ylabel("Loci variability")
+        ax1.set_xlabel("Structure bead")
+        ax1.plot(df_rg["pos"], df_rg["rg"])
 
         plt.tight_layout()
         canvas = FigureCanvas(fig)
