@@ -163,14 +163,14 @@ def get_custom_force_formula(f_type: str="attractive", f_formula: str="harmonic"
             if l_bound == u_bound == u_linear:
                 formula = '(r-rl)^2'
             elif u_bound >= u_linear:
-                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)'
+                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))'
             else:
                 formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)*step(r_u+d-r) + d*(2*r-d-2*r_u)*step(r-r_u-d))'
         elif f_formula == "gaussian":
             if l_bound == u_bound:
                 formula = '(1-exp(-(r-r_l)^2/2/r_l^2))'
             else:
-                formula = '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))'
+                formula = '((1-exp(-(r-r_l)^2/2/r_l^2))*step(r_l-r) + (1-exp(-(r-r_u)^2/2/r_l^2))*step(r-r_u))'
     elif f_type == "repulsive":
         formula = '(r-r_l)^2*step(r_l-r)'
 
@@ -178,6 +178,25 @@ def get_custom_force_formula(f_type: str="attractive", f_formula: str="harmonic"
         raise(Exception("Could not find a correct formula for a force."))
     return formula
 
+
+def formula2lambda(formula: str, l_bound: float=1, u_bound: float=1, u_linear:float=1):
+    """Creates a lambda function based on the formula and parameters."""
+    if formula == '(r-rl)^2':
+        return lambda r: (r-l_bound)**2
+    elif formula == '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u))':
+        return lambda r: (r-l_bound)**2 if r<l_bound else (r-u_bound)**2 if r>u_bound else 0
+    elif formula == '((r-r_l)^2*step(r_l-r) + (r-r_u)^2*step(r-r_u)*step(r_u+d-r) + d*(2*r-d-2*r_u)*step(r-r_u-d))':
+        d = u_linear - u_bound
+        return lambda r: (r-l_bound)**2 if r<l_bound else d*(2*r-d-2*u_bound) if r>u_linear else (r-u_bound)**2 if r>u_bound else 0
+    elif formula == '(1-exp(-(r-r_l)^2/2/r_l^2))':
+        return lambda r: 1-np.exp(-(r-l_bound)**2/2/l_bound**2)
+    elif formula == '((1-exp(-(r-r_l)^2/2/r_l^2))*step(r_l-r) + (1-exp(-(r-r_u)^2/2/r_l^2))*step(r-r_u))':
+        return lambda r: (1-np.exp(-(r-l_bound)**2/2/l_bound**2)) if r<l_bound else (1-np.exp(-(r-u_bound)**2/2/l_bound**2)) if r>u_bound else 0
+    elif formula == '(r-r_l)^2*step(r_l-r)':
+        return lambda r: (r-l_bound)**2 if r<l_bound else 0
+    else:
+        raise(Exception(f"Unrecognized formula: {formula}"))
+    
 
 def resolution2text(resolution: int):
     """

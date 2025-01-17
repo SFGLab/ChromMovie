@@ -101,12 +101,12 @@ forcefield:
   ev_coef_evol: true
   bb_formula: harmonic
   bb_opt_dist: 1.0
-  bb_lin_thresh: 2.0
+  bb_lin_thresh: 1.0
   bb_coef: 1000.0
   bb_coef_evol: false
-  sc_formula: harmonic
+  sc_formula: gaussian
   sc_opt_dist: 1.0
-  sc_lin_thresh: 2.0
+  sc_lin_thresh: 1.0
   sc_coef: 1000.0
   sc_coef_evol: false
   ff_formula: harmonic

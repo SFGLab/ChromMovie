@@ -297,6 +297,7 @@ class MD_simulation:
         'Leonard-Jones potential for excluded volume'
         force_formula = get_custom_force_formula(f_type="repulsive", f_formula=formula_type,
                                                  l_bound=r_min, u_bound=r_min)
+        self.ev_formula = force_formula
         force_formula = force_formula.replace("r_l", "r_min")
 
         self.ev_force = mm.CustomNonbondedForce(f'epsilon_ev*{force_formula}*delta(frame1-frame2)')
@@ -314,6 +315,7 @@ class MD_simulation:
         'Harmonic bond force between succesive beads'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        self.bb_formula = force_formula
         force_formula = force_formula.replace("r_l", "r_l_bb")
         force_formula = force_formula.replace("r_u", "r_u_bb")
         force_formula = force_formula.replace("d", "d_bb")
@@ -334,6 +336,7 @@ class MD_simulation:
         'Harmonic bond force between loci connected by a scHi-C contact'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        self.sc_formula = force_formula
         force_formula = force_formula.replace("r_l", "r_l_sc")
         force_formula = force_formula.replace("r_u", "r_u_sc")
         force_formula = force_formula.replace("d", "d_sc")
@@ -358,6 +361,7 @@ class MD_simulation:
         'Harmonic bond force between same loci from different frames'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
+        self.ff_formula = force_formula
         force_formula = force_formula.replace("r_l", "r_l_ff")
         force_formula = force_formula.replace("r_u", "r_u_ff")
         force_formula = force_formula.replace("d", "d_ff")
@@ -375,7 +379,7 @@ class MD_simulation:
         self.ff_force_index = self.system.addForce(self.frame_force)
 
 
-    def add_forcefield(self, params: list) -> None:
+    def add_forcefield(self, params: dict) -> None:
         '''
         Here is the definition of the force field.
 
@@ -453,8 +457,58 @@ class MD_simulation:
         pdf.cell(0, 12, text="Forces functional forms", new_x="LMARGIN", new_y="NEXT")
 
         fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
-        ax[0].plot(np.random.rand(100))
-        ax[1].plot(np.linspace(1, 10, 100))
+        y_max = 0
+
+        x = np.linspace(0, self.force_params["ev_min_dist"]*1.5, 100)
+        f = formula2lambda(self.ev_formula, l_bound=self.force_params["ev_min_dist"], 
+                        u_bound=self.force_params["ev_min_dist"], u_linear=self.force_params["ev_min_dist"])
+        y = [f(xi) for xi in x]
+        y_max = max(y_max, np.max(y))
+        ax[0].plot(x, y)
+
+        if self.force_params["bb_formula"] == "gaussian":
+            x = np.linspace(0, self.force_params["bb_opt_dist"]*4, 100)
+        else:
+            x = np.linspace(0, self.force_params["bb_opt_dist"]*2.5, 100)
+        f = formula2lambda(self.bb_formula, l_bound=self.force_params["bb_opt_dist"]*0.8, 
+                        u_bound=self.force_params["bb_opt_dist"]*1.2, u_linear=self.force_params["bb_lin_thresh"])
+        y = [f(xi) for xi in x]
+        y_max = max(y_max, np.max(y))
+        ax[1].plot(x, y)
+
+        if self.force_params["sc_formula"] == "gaussian":
+            x = np.linspace(0, self.force_params["sc_opt_dist"]*4, 100)
+        else:
+            x = np.linspace(0, self.force_params["sc_opt_dist"]*2.5, 100)
+        f = formula2lambda(self.sc_formula, l_bound=self.force_params["sc_opt_dist"]*0.8, 
+                        u_bound=self.force_params["sc_opt_dist"]*1.2, u_linear=self.force_params["sc_lin_thresh"])
+        y = [f(xi) for xi in x]
+        y_max = max(y_max, np.max(y))
+        ax[2].plot(x, y)
+        
+        if self.force_params["ff_formula"] == "gaussian":
+            x = np.linspace(0, self.force_params["ff_opt_dist"]*4, 100)
+        else:
+            x = np.linspace(0, self.force_params["ff_opt_dist"]*2.5, 100)
+        f = formula2lambda(self.ff_formula, l_bound=self.force_params["ff_opt_dist"]*0.8, 
+                        u_bound=self.force_params["ff_opt_dist"]*1.2, u_linear=self.force_params["ff_lin_thresh"])
+        y = [f(xi) if xi>self.force_params["ff_opt_dist"]*1.2 else 0 for xi in x ]
+        y_max = max(y_max, np.max(y))
+        ax[3].plot(x, y)
+        
+        for i, code in enumerate(["ev", "bb", "sc", "ff"]):
+            ax[i].set_ylim((-y_max/30, y_max))
+            if code=="ev" or (self.force_params[code+"_formula"]=="harmonic" and self.force_params[code+"_lin_thresh"] <= self.force_params[code+"_opt_dist"]*1.2):
+                text = "harmonic"
+            elif self.force_params[code+"_formula"]=="harmonic":
+                text = "harmonic+linear"
+            elif self.force_params[code+"_formula"]=="gaussian":
+                text = "gaussian"
+            else:
+                raise(Exception("Unrecognized force formula."))
+            ax[i].set_title(code.upper()+f" force ({text})")
+            ax[i].set_xlabel("3D distance")
+
         canvas = FigureCanvas(fig)
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
@@ -464,8 +518,15 @@ class MD_simulation:
         pdf.cell(0, 12, text="Forces coefficients", new_x="LMARGIN", new_y="NEXT")
 
         fig, ax = plt.subplots(1, 4, figsize=(16, 4), dpi=300)
-        ax[0].plot(np.random.rand(100))
-        ax[1].plot(np.linspace(1, 10, 100))
+        for i, code in enumerate(["ev", "bb", "sc", "ff"]):
+            if self.force_params[f"{code}_coef_evol"]:
+                x = np.linspace(0, 1, 100)
+                y = [self.force_params[f"{code}_coef"]*(np.arctan(10*(2*xi-1))/np.pi + 0.5) for xi in x]
+                ax[i].plot(x, y)
+            else:
+                ax[i].plot([self.force_params[f"{code}_coef"]]*2)
+            ax[i].set_title(code.upper()+" coefficient")
+            ax[i].set_xlabel("Simulation time (start to end)")
         canvas = FigureCanvas(fig)
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))

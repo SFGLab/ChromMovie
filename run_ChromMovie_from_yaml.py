@@ -49,7 +49,7 @@ def main(config_path: str='config.yaml'):
         structure_set = get_structure_02(frames=main_config["n"], m=main_config["m"])
         heatmaps = get_hicmaps(structure_set, n_contacts=main_config["n_contacts"])
     else:
-        raise(Exception("Neither input not artificial structure were correctly specified."))
+        raise(Exception("Neither input nor artificial structure were correctly specified."))
     
     # Saving the ground truth structure (if applicable):
     if main_config["input"] is None:
