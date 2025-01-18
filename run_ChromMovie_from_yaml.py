@@ -5,7 +5,7 @@
 import yaml
 import os
 import pandas as pd
-# from ChromMovie import *
+from ChromMovie import *
 
 
 def load_config(config_file: str):
@@ -156,8 +156,7 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
         raise ValueError("ff_coef must be greater than 0")
     if not isinstance(f_config["ff_coef_evol"], (bool)):
         raise TypeError("Invalid 'ff_coef_evol' parameter type. Expected 'bool', got "+str(type(f_config["ff_coef_evol"])))
-            
-    return 0
+
 
 def main(config_path: str='config.yaml'):
     # Load configuration
@@ -170,7 +169,6 @@ def main(config_path: str='config.yaml'):
 
     # Parameter validation
     validate_input_yaml_parameters(main_config, sim_config, force_config)
-    return 0
     
     # Creating input numpy heatmaps
     heatmaps = None
