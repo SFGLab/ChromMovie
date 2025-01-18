@@ -18,9 +18,10 @@ descriptions:
       intra-chromosomal contacts within this chromosome.
     pdf_report: Whether to save the simulation diagnostics in a pdf format.
   simulation:
-    platform: TODO
+    platform: 'Available platoforms: CPU, CUDA, OpenCL, HIP'
     resolutions: Resolutions to be used for hierarchical modeling. Expected to be
       in the form of comma separated integer of float numbers in the units of Mb.
+      Resolutions need not to be in any particular order. Decresing resolution will be used in simulation.
     N_steps: TODO
     burnin: TODO
     MC_step: TODO
@@ -41,7 +42,7 @@ descriptions:
 
       Must be strictly greater than bb_opt_dist.
 
-      Only applicable if bb_formula is TODO'
+      Only applicable if bb_formula is harmonic'
     bb_coef: Backbone (BB) force coefficient
     bb_coef_evol: 'Enable or disable the changing BB coefficient value.
 
@@ -57,7 +58,7 @@ descriptions:
 
       Must be strictly greater than sc_opt_dist.
 
-      Only applicable if bb_formula is TODO'
+      Only applicable if sc_formula is harmonic'
     sc_coef: Single cell contact (SC) force coefficient
     sc_coef_evol: 'Enable or disable the changing SC coefficient value.
 
@@ -65,13 +66,13 @@ descriptions:
       reach sc_coef at the end.
 
       If False the coefficient will have stable value of sc_coef.'
-    ff_formula: 'Type of the Frame force (FF) potential. Available types: TODO'
+    ff_formula: 'Type of the Frame force (FF) potential. Available types: harmonic, gaussian'
     ff_opt_dist: Frame force (FF) optimal distance
     ff_lin_thresh: 'Frame force (FF) distance after which the potential grows linearly.
 
       Must be strictly greater than ff_opt_dist.
 
-      Only applicable if bb_formula is TODO'
+      Only applicable if ff_formula is harmonic'
     ff_coef: Frame force (FF) force coefficient
     ff_coef_evol: 'Enable or disable the changing FF coefficient value.
 
