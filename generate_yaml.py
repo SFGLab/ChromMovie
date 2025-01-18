@@ -25,7 +25,7 @@ CONFIG_PARAMETERS = {
         },
         'artificial_structure': {
             'value': 1,
-            'description': 'Index of the in silico structure to be generated as simulation input.\nOnly applicable if input==None. Available structure indices: TODO'
+            'description': 'Index of the in silico structure to be generated as simulation input.\nOnly applicable if input==None. Available structure indices: 1, 2'
         },
         'genome': {
             'value': 'mm10',
@@ -44,7 +44,7 @@ CONFIG_PARAMETERS = {
     'simulation': {
         'platform': {
             'value': 'OpenCL',
-            'description': 'TODO'
+            'description': 'Available platoforms: CPU, CUDA, OpenCL, HIP'
         },
         'resolutions': {
             'value': '5,2',
@@ -52,19 +52,19 @@ CONFIG_PARAMETERS = {
         },
         'N_steps': {
             'value': 100,
-            'description': 'TODO'
+            'description': 'Number of simulation steps to take at every resolution'
         },
         'burnin': {
             'value': 5,
-            'description': 'TODO'
+            'description': 'Number of simulation steps before starting collecting the simulatin diagnostic data'
         },
         'MC_step': {
             'value': 1,
-            'description': 'TODO'
+            'description': 'Simulation diagnostic data is going to be collected every MC_step'
         },
         'sim_step': {
             'value': 20,
-            'description': 'TODO'
+            'description': 'The simulation step of Langevin integrator'
         },
         
     },
@@ -72,7 +72,7 @@ CONFIG_PARAMETERS = {
     'forcefield': {
         'ev_formula': {
             'value': 'harmonic',
-            'description': 'Type of the Excluded Volume (EV) repulsion. Available types: TODO'
+            'description': 'Type of the Excluded Volume (EV) repulsion. Available types: harmonic'
         },
         'ev_min_dist': {
             'value': 1.0,
@@ -89,7 +89,7 @@ CONFIG_PARAMETERS = {
 
         'bb_formula': {
             'value': 'harmonic',
-            'description': 'Type of the Backbone (BB) potential. Available types: TODO'
+            'description': 'Type of the Backbone (BB) potential. Available types: harmonic, gaussian'
         },
         'bb_opt_dist': {
             'value': 1.0,
@@ -97,7 +97,7 @@ CONFIG_PARAMETERS = {
         },
         'bb_lin_thresh': {
             'value': 2.0,
-            'description': 'Backbone (BB) distance after which the potential grows linearly.\nMust be strictly greater than bb_opt_dist.\nOnly applicable if bb_formula is TODO'
+            'description': 'Backbone (BB) distance after which the potential grows linearly.\nMust be strictly greater than bb_opt_dist.\nOnly applicable if bb_formula is harmonic'
         },
         'bb_coef': {
             'value': 1000.0,
@@ -111,7 +111,7 @@ CONFIG_PARAMETERS = {
 
         'sc_formula': {
             'value': 'harmonic',
-            'description': 'Type of the Single cell contact (SC) potential. Available types: TODO'
+            'description': 'Type of the Single cell contact (SC) potential. Available types: harmonic, gaussian'
         },
         'sc_opt_dist': {
             'value': 1.0,
@@ -119,7 +119,7 @@ CONFIG_PARAMETERS = {
         },
         'sc_lin_thresh': {
             'value': 2.0,
-            'description': 'Single cell contact (SC) distance after which the potential grows linearly.\nMust be strictly greater than sc_opt_dist.\nOnly applicable if bb_formula is TODO'
+            'description': 'Single cell contact (SC) distance after which the potential grows linearly.\nMust be strictly greater than sc_opt_dist.\nOnly applicable if sc_formula is harmonic'
         },
         'sc_coef': {
             'value': 1000.0,
@@ -132,7 +132,7 @@ CONFIG_PARAMETERS = {
 
         'ff_formula': {
             'value': 'harmonic',
-            'description': 'Type of the Frame force (FF) potential. Available types: TODO'
+            'description': 'Type of the Frame force (FF) potential. Available types: harmonic, gaussian'
         },
         'ff_opt_dist': {
             'value': 1.0,
@@ -140,7 +140,7 @@ CONFIG_PARAMETERS = {
         },
         'ff_lin_thresh': {
             'value': 2.0,
-            'description': 'Frame force (FF) distance after which the potential grows linearly.\nMust be strictly greater than ff_opt_dist.\nOnly applicable if bb_formula is TODO'
+            'description': 'Frame force (FF) distance after which the potential grows linearly.\nMust be strictly greater than ff_opt_dist.\nOnly applicable if ff_formula is harmonic'
         },
         'ff_coef': {
             'value': 1000.0,

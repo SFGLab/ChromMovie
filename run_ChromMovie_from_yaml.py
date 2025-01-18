@@ -73,8 +73,8 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
 
     if not isinstance(s_config["burnin"], (int)):
         raise TypeError("Invalid 'burnin' parameter type. Expected 'int', got "+str(type(s_config["input"])))
-    if s_config["burnin"] <= 0:
-        raise ValueError("burnin must be greater than 0")
+    if s_config["burnin"] < 0:
+        raise ValueError("burnin must be greater or equal 0")
     
     if not isinstance(s_config["MC_step"], (int)):
         raise TypeError("Invalid 'MC_step' parameter type. Expected 'int', got "+str(type(s_config["input"])))

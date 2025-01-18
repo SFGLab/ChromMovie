@@ -11,7 +11,7 @@ descriptions:
     artificial_structure: 'Index of the in silico structure to be generated as simulation
       input.
 
-      Only applicable if input==None. Available structure indices: TODO'
+      Only applicable if input==None. Available structure indices: 1, 2'
     genome: 'Genome assembly of the input data. Currently supported assemblies: hg19,
       hg38, mm10, GRCm39.'
     chrom: Chromosome to be modeled. The input files are going to be filtered for
@@ -21,13 +21,13 @@ descriptions:
     platform: 'Available platoforms: CPU, CUDA, OpenCL, HIP'
     resolutions: Resolutions to be used for hierarchical modeling. Expected to be
       in the form of comma separated integer of float numbers in the units of Mb.
-      Resolutions need not to be in any particular order. Decresing resolution will be used in simulation.
-    N_steps: TODO
-    burnin: TODO
-    MC_step: TODO
-    sim_step: TODO
+    N_steps: Number of simulation steps to take at every resolution
+    burnin: Number of simulation steps before starting collecting the simulatin diagnostic
+      data
+    MC_step: Simulation diagnostic data is going to be collected every MC_step
+    sim_step: The simulation step of Langevin integrator
   forcefield:
-    ev_formula: 'Type of the Excluded Volume (EV) repulsion. Available types: TODO'
+    ev_formula: 'Type of the Excluded Volume (EV) repulsion. Available types: harmonic'
     ev_min_dist: Excluded Volume (EV) minimal distance
     ev_coef: Excluded Volume (EV) force coefficient
     ev_coef_evol: 'Enable or disable the changing EV coefficient value.
@@ -36,7 +36,7 @@ descriptions:
       reach ev_coef at the end.
 
       If False the coefficient will have stable value of ev_coef.'
-    bb_formula: 'Type of the Backbone (BB) potential. Available types: TODO'
+    bb_formula: 'Type of the Backbone (BB) potential. Available types: harmonic, gaussian'
     bb_opt_dist: Backbone (BB) optimal distance
     bb_lin_thresh: 'Backbone (BB) distance after which the potential grows linearly.
 
@@ -51,7 +51,7 @@ descriptions:
 
       If False the coefficient will have stable value of bb_coef.'
     sc_formula: 'Type of the Single cell contact (SC) potential. Available types:
-      TODO'
+      harmonic, gaussian'
     sc_opt_dist: Single cell contact (SC) optimal distance
     sc_lin_thresh: 'Single cell contact (SC) distance after which the potential grows
       linearly.
@@ -66,7 +66,8 @@ descriptions:
       reach sc_coef at the end.
 
       If False the coefficient will have stable value of sc_coef.'
-    ff_formula: 'Type of the Frame force (FF) potential. Available types: harmonic, gaussian'
+    ff_formula: 'Type of the Frame force (FF) potential. Available types: harmonic,
+      gaussian'
     ff_opt_dist: Frame force (FF) optimal distance
     ff_lin_thresh: 'Frame force (FF) distance after which the potential grows linearly.
 
