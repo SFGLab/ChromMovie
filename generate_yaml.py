@@ -34,6 +34,10 @@ CONFIG_PARAMETERS = {
         'chrom': {
             'value': 'chr1',
             'description': 'Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.'
+        },
+        'pdf_report': {
+            'value': True,
+            'description': 'Whether to save the simulation diagnostics in a pdf format.'
         }
     },
 

@@ -16,6 +16,7 @@ descriptions:
       hg38, mm10, GRCm39.'
     chrom: Chromosome to be modeled. The input files are going to be filtered for
       intra-chromosomal contacts within this chromosome.
+    pdf_report: Whether to save the simulation diagnostics in a pdf format.
   simulation:
     platform: TODO
     resolutions: Resolutions to be used for hierarchical modeling. Expected to be
@@ -87,6 +88,7 @@ general:
   artificial_structure: 1
   genome: mm10
   chrom: chr1
+  pdf_report: true
 simulation:
   platform: OpenCL
   resolutions: 5,2
@@ -97,20 +99,20 @@ simulation:
 forcefield:
   ev_formula: harmonic
   ev_min_dist: 1.0
-  ev_coef: 40.0
+  ev_coef: 1000.0
   ev_coef_evol: false
   bb_formula: harmonic
   bb_opt_dist: 1.0
-  bb_lin_thresh: 1.0
+  bb_lin_thresh: 2.0
   bb_coef: 1000.0
   bb_coef_evol: false
-  sc_formula: gaussian
+  sc_formula: harmonic
   sc_opt_dist: 1.0
-  sc_lin_thresh: 1.0
+  sc_lin_thresh: 2.0
   sc_coef: 1000.0
   sc_coef_evol: false
   ff_formula: harmonic
-  ff_opt_dist: 0.1
-  ff_lin_thresh: 0.2
+  ff_opt_dist: 1.0
+  ff_lin_thresh: 2.0
   ff_coef: 1000.0
   ff_coef_evol: false

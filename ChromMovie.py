@@ -64,6 +64,7 @@ class MD_simulation:
         self.resolutions.sort(reverse=True)
         self.user_force_params = force_params
         self.adjust_force_params(self.resolutions[0])
+        self.pdf_report = main_config["pdf_report"]
 
 
     def adjust_force_params(self, resolution: int) -> list:
@@ -187,7 +188,8 @@ class MD_simulation:
                 self.add_forcefield(params)
         
         print(f'Simulation finished succesfully.')
-        self.plot_reporter(resolution=resolution)
+        if self.pdf_report:
+            self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
         print(f'MD round finished in {elapsed/60:.2f} minutes.\n')
