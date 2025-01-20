@@ -5,6 +5,7 @@
 import yaml
 import os
 import pandas as pd
+import shutil
 from ChromMovie import *
 
 
@@ -170,6 +171,11 @@ def main(config_path: str='config.yaml'):
     # Parameter validation
     validate_input_yaml_parameters(main_config, sim_config, force_config)
     
+    # Creating results folder and copying config file
+    if not os.path.exists(main_config["output"]):
+        os.makedirs(main_config["output"])
+    shutil.copy(config_path, os.path.join(main_config["output"], os.path.basename(config_path)))
+
     # Creating input numpy heatmaps
     heatmaps = None
     contact_dfs = None

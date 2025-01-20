@@ -82,7 +82,6 @@ class MD_simulation:
         
         self.force_params = force_params_new
         
-        
     
     def run_pipeline(self, run_MD: bool=True, sim_step: int=5, write_files: bool=True) -> None:
         '''
