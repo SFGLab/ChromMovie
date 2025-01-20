@@ -1,6 +1,8 @@
 # ChromMovie
 ChromMovie: a molecular dynamics approach at simultaneous modeling of chromatin conformation changes from multiple sets of single-cell Hi-C data
 
+![ChromMovie_idea](https://github.com/user-attachments/assets/3a4af3e4-7db9-45cc-8eb6-a5c4696ae5f7)
+
 ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3D chromatin structure up to the chromosome level. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
 
 ## Installation
