@@ -43,15 +43,15 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
     if not isinstance(m_config["artificial_structure"], (int)):
         raise TypeError("Invalid 'artificial_structure' parameter type. Expected 'int', got "+str(type(m_config["input"])))
     if m_config["artificial_structure"] <= 0:
-        raise ValueError(f"artificial_structure must be either '1' or '2'. Got {m_config["artificial_structure"]}")
+        raise ValueError(f"artificial_structure must be either '1' or '2'. Got "+str(m_config["artificial_structure"]))
     
     if m_config["genome"] not in [file.split(".")[0] for file in os.listdir("chrom_sizes")]:
-        raise ValueError(f"Cannot find chromosome sizes for genome assembly: {m_config["genome"]}")
+        raise ValueError(f"Cannot find chromosome sizes for genome assembly: "+str(m_config["genome"]))
 
-    chrom_sizes = pd.read_csv(f"chrom_sizes/{m_config["genome"]}.txt", 
+    chrom_sizes = pd.read_csv(f"chrom_sizes/"+str(m_config["genome"])+".txt", 
                                     header=None, index_col=0, sep="\t")
     if m_config["chrom"] not in chrom_sizes.index:
-        raise ValueError(f"Cannot find chromosome size for the chromosome: {m_config["chrom"]}")
+        raise ValueError(f"Cannot find chromosome size for the chromosome: "+str(m_config["chrom"]))
 
     if not isinstance(m_config["pdf_report"], (bool)):
         raise TypeError("Invalid 'pdf_report' parameter type. Expected 'bool', got "+str(type(m_config["input"])))
