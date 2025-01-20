@@ -19,12 +19,13 @@ def load_config(config_file: str):
 def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dict) -> None:
     """Validate input YAML parameters."""
     # Main config validation
-    if not os.path.isdir(m_config["input"]):
-        raise ValueError("Simulation 'input' parameter is not a valid directory")
-    files = os.listdir(m_config["input"])
-    files = [file for file in files if file.endswith(".csv")]
-    if len(files) == 0:
-        raise ValueError("No csv files were found in the input directory")
+    if m_config["input"] is not None:
+        if not os.path.isdir(m_config["input"]):
+            raise ValueError("Simulation 'input' parameter is not a valid directory")
+        files = os.listdir(m_config["input"])
+        files = [file for file in files if file.endswith(".csv")]
+        if len(files) == 0:
+            raise ValueError("No csv files were found in the input directory")
     
     if not isinstance(m_config["n"], (int)):
         raise TypeError("Invalid 'n' parameter type. Expected 'int', got "+str(type(m_config["input"])))
@@ -159,7 +160,21 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
         raise TypeError("Invalid 'ff_coef_evol' parameter type. Expected 'bool', got "+str(type(f_config["ff_coef_evol"])))
 
 
-def main(config_path: str='config.yaml'):
+def heatmap2df(heatmap: np.ndarray, chrom: str, chrom_size: int) -> pd.DataFrame:
+    df = pd.DataFrame(columns=["chrom", "x", "y"])
+    m = heatmap.shape[0]
+    bin_w = chrom_size/m
+    for i in range(m):
+        for j in range(i, m):
+            if heatmap[i, j] > 0:
+                for _ in range(int(heatmap[i, j])):
+                    pos1 = int(bin_w*i + np.random.rand()*bin_w)
+                    pos2 = int(bin_w*j + np.random.rand()*bin_w)
+                    df.loc[df.shape[0], :] = [chrom, pos1, pos2]
+    return df
+
+
+def ChromMovie_from_yaml(config_path: str='config.yaml'):
     # Load configuration
     config = load_config(config_path)
     
@@ -177,6 +192,9 @@ def main(config_path: str='config.yaml'):
     shutil.copy(config_path, os.path.join(main_config["output"], os.path.basename(config_path)))
 
     # Creating input numpy heatmaps
+    chrom = main_config["chrom"]
+    chrom_size = pd.read_csv("chrom_sizes/"+main_config["genome"]+".txt", 
+                                    header=None, index_col=0, sep="\t").loc[chrom, 1]
     heatmaps = None
     contact_dfs = None
     if main_config["input"] is not None:
@@ -193,9 +211,11 @@ def main(config_path: str='config.yaml'):
     elif main_config["artificial_structure"] == 1:
         structure_set = get_structure_01(frames=main_config["n"], m=main_config["m"])
         heatmaps = get_hicmaps(structure_set, n_contacts=main_config["n_contacts"])
+        contact_dfs = [heatmap2df(heatmap, chrom, chrom_size) for heatmap in heatmaps]
     elif main_config["artificial_structure"] == 2:
         structure_set = get_structure_02(frames=main_config["n"], m=main_config["m"])
         heatmaps = get_hicmaps(structure_set, n_contacts=main_config["n_contacts"])
+        contact_dfs = [heatmap2df(heatmap, chrom, chrom_size) for heatmap in heatmaps]
     else:
         raise(Exception("Neither input nor artificial structure were correctly specified."))
     
@@ -215,4 +235,4 @@ def main(config_path: str='config.yaml'):
 
 
 if __name__ == "__main__":
-    main('config.yaml')
+    ChromMovie_from_yaml('config.yaml')

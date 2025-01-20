@@ -9,6 +9,10 @@ from Bio.PDB import qcprot
 from ChromMovie import *
 from create_insilico import get_structure_01, get_hicmaps
 
+from generate_yaml import generate_yaml_config
+from run_ChromMovie_from_yaml import ChromMovie_from_yaml
+
+
 def create_random_matrix(m: int, n_contact: int) -> np.array:
     if (m**2-m)/2 < n_contact:
         raise ValueError("Number of contacts must be smaller than (m^2-m)/2.")
@@ -114,35 +118,52 @@ if __name__ == "__main__":
 
 
     df_results = pd.DataFrame(columns = ["base_d", "k_ev", "k_bb", "k_sc", "k_ff"] +[f"MW_pval_frame{i}" for i in range(n)])
-    n_tests = 1
+    n_tests = 1000
     for i in range(n_tests):
         print(f"------Running test no {i}------")
         # heatmaps = [add_noise(mat, 5) for mat in heatmaps_orig]
 
         base_d = 1 #10**np.random.uniform(-2, 0)
-        k_ev = 1e0 # 10**np.random.uniform(0, 5)
-        k_bb = 1e5 #10**np.random.uniform(0, 5)
-        k_sc = 1e0 #10**np.random.uniform(0, 5)
-        k_ff = 1e0 #10**np.random.uniform(0, 6)
-        f_params = [base_d*3, k_ev, base_d, k_bb, base_d, k_sc, base_d/10, k_ff]
+        k_ev = 1e3 # 10**np.random.uniform(0, 5)
+        k_bb = 1e3 #10**np.random.uniform(0, 5)
+        k_sc = 1e3 #10**np.random.uniform(0, 5)
+        k_ff = 10**np.random.uniform(0, 6)
 
-        md = MD_simulation(heatmaps, out_path, N_steps=N_steps, burnin=5, MC_step=1, platform='OpenCL', force_params=f_params)
-        md.run_pipeline(write_files=True, plots=True, sim_step=sim_step)
-
-        try:
-            # pvals = []
-            rmsds = []
-            for frame in range(n):
-                # structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
-                # pvals.append(test_mannwhitney(heatmaps[frame], structure))
-
-                structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
-                structure_QCP = get_qcp_fit_model(structure_set[frame], structure)
-                rmsds.append(rmsd(structure_QCP, structure_set[frame]))
+        user_specified_config = {
+            'general': {
+                'input': None,
+                'output': out_path,
+                'n': 5,
+                'm': 50,
+                'artificial_structure': 2,
+                'pdf_report': False
+            },
+            'simulation': {
             
-            df_results.loc[i] = [base_d, k_ev, k_bb, k_sc, k_ff] + rmsds
-        except mm.OpenMMException:
-            pass
+            },
+            'forcefield': {
+                'ev_coef': k_ev,
+                'bb_coef': k_bb,
+                'sc_coef': k_sc,
+                'ff_coef': k_ff
+            }
+        }
+
+        generate_yaml_config('config.yaml', user_specified_config)
+        ChromMovie_from_yaml('config.yaml')
+
+        # pvals = []
+        rmsds = []
+        for frame in range(n):
+            # structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
+            # pvals.append(test_mannwhitney(heatmaps[frame], structure))
+
+            structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
+            structure_QCP = get_qcp_fit_model(structure_set[frame], structure)
+            rmsds.append(rmsd(structure_QCP, structure_set[frame]))
+        
+        df_results.loc[i] = [base_d, k_ev, k_bb, k_sc, k_ff] + rmsds
+
 
         if (i+1)%20 == 0:
             df_results.to_csv(os.path.join(out_path, "results_test{}.csv".format(str(test_no).zfill(2))))

@@ -105,13 +105,14 @@ def get_hicmaps(structure_set, n_contacts=100):
             dist_weights += list(dist_mat[i, i+1:])
         dist_sum = np.sum(dist_weights)
         dist_weights = [w/dist_sum for w in dist_weights]
-        contacts = np.sort(np.random.choice(int((m**2-m)/2), n_contacts, p=dist_weights, replace=False))
+        contacts = np.sort(np.random.choice(int((m**2-m)/2), n_contacts, p=dist_weights, replace=True))
 
         k = 0
         for i in range(m-1):
             for j in range(i+1, m):
                 if len(contacts)>=1 and k == contacts[0]:
-                    heatmap[i, j] = heatmap[j, i] = 1
+                    heatmap[i, j] += 1
+                    heatmap[j, i] += 1
                     contacts = contacts[1:]
                 k += 1
             
