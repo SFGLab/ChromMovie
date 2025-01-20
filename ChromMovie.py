@@ -149,7 +149,7 @@ class MD_simulation:
                 self.resolution_change(new_res=res, sim_step=sim_step, index=i+1, setup=(i!=0))
 
                 # MD simulation at a given resolution
-                self.save_state(frame_path_npy, frame_path_cif, step=0)
+                self.save_state(frame_path_npy, frame_path_cif, res, step=0, save_heatmaps=True)
                 self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
                                         params=params)
                 
@@ -166,7 +166,7 @@ class MD_simulation:
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
             if i%self.step == 0 and i > self.burnin*self.step:
-                self.save_state(frame_path_npy, frame_path_cif, step=i)
+                self.save_state(frame_path_npy, frame_path_cif, resolution, step=i, save_heatmaps=False)
             # updating the repulsive and frame force strength:
             if self.user_force_params["ev_coef_evol"] or self.user_force_params["bb_coef_evol"] or \
                 self.user_force_params["sc_coef_evol"] or self.user_force_params["ff_coef_evol"]:
@@ -209,6 +209,7 @@ class MD_simulation:
             for x_bin, y_bin in zip(x_bins, y_bins):
                 if 0 <= x_bin < new_m and 0 <= y_bin < new_m:
                     bin_matrix[x_bin, y_bin] += 1
+                    bin_matrix[y_bin, x_bin] += 1
             new_heatmaps.append(bin_matrix)
 
         return new_heatmaps
@@ -282,15 +283,17 @@ class MD_simulation:
         return frames
 
 
-    def save_state(self, path_npy: str, path_cif: str, step: int) -> None:
+    def save_state(self, path_npy: str, path_cif: str, resolution: int, step: int, save_heatmaps: bool) -> None:
         "Saves the current state of the simulation in cif files and npy arrays. Parameters step and frame specify the name of the file"
         frames = self.get_frames_positions_npy()
         for frame in range(self.n):
             frame_positions = frames[frame]
-            np.save(os.path.join(path_npy, "step{}_frame{}.npy".format(str(step).zfill(3), str(frame).zfill(3))),
-                    frame_positions)
             write_mmcif(frame_positions, 
                                 os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))))
+        if save_heatmaps:
+            for frame in range(self.n):
+                np.save(os.path.join(path_npy, "res{}_frame{}.npy".format(resolution2text(resolution), str(frame).zfill(3))),
+                    self.heatmaps[frame])
 
 
     def add_evforce(self, formula_type: str="harmonic", r_min: float=1, coef: float=1e3) -> None:
