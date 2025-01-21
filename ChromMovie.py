@@ -297,7 +297,7 @@ class MD_simulation:
 
 
     def add_evforce(self, formula_type: str="harmonic", r_min: float=1, coef: float=1e3) -> None:
-        'Leonard-Jones potential for excluded volume'
+        'General potential for excluded volume'
         force_formula = get_custom_force_formula(f_type="repulsive", f_formula=formula_type,
                                                  l_bound=r_min, u_bound=r_min)
         self.ev_formula = force_formula
@@ -315,7 +315,7 @@ class MD_simulation:
 
 
     def add_backbone(self, formula_type: str="harmonic", r_opt: float=1, r_linear: float=0, coef: float=1e4) -> None:
-        'Harmonic bond force between succesive beads'
+        'Bond force between succesive beads'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
         self.bb_formula = force_formula
@@ -336,7 +336,7 @@ class MD_simulation:
 
 
     def add_schic_contacts(self, formula_type: str="harmonic", r_opt: float=1, r_linear: float=0, coef: float=1e4) -> None:
-        'Harmonic bond force between loci connected by a scHi-C contact'
+        'Bond force between loci connected by a scHi-C contact'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
         self.sc_formula = force_formula
@@ -361,7 +361,7 @@ class MD_simulation:
 
 
     def add_between_frame_forces(self, formula_type: str="harmonic", r_opt: float=1, r_linear: float=0, coef: float=1e3) -> None:
-        'Harmonic bond force between same loci from different frames'
+        'Bond force between same loci from different frames'
         force_formula = get_custom_force_formula(f_type="attractive", f_formula=formula_type,
                                                  l_bound=r_opt*0.8, u_bound=r_opt*1.2, u_linear=r_linear)
         self.ff_formula = force_formula
