@@ -143,7 +143,7 @@ def extrapolate_points(points: np.array, n: int) -> np.array:
             p = (p1[0] * (1 - alpha) + p2[0] * alpha, p1[1] * (1 - alpha) + p2[1] * alpha,
                  p1[2] * (1 - alpha) + p2[2] * alpha)
             points_new.append(p)
-    return points_new
+    return np.array(points_new)
 
 
 def get_custom_force_formula(f_type: str="attractive", f_formula: str="harmonic", linear: bool=False, l_bound: float=1, u_bound: float=1, u_linear:float=1) -> str:

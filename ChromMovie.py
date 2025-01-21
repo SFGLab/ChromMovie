@@ -157,7 +157,7 @@ class MD_simulation:
                 frames = self.get_frames_positions_npy()
                 points = np.vstack(tuple(frames))
                 cif_path = self.output_path+f"/struct_{str(i+1).zfill(2)}_res{resolution2text(res)}_ready.cif"
-                write_mmcif(points, cif_path)
+                write_mmcif(points*10, cif_path)
                 
 
     def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: dict) -> None:
@@ -232,7 +232,7 @@ class MD_simulation:
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
         cif_path = self.output_path+f"/struct_{str(index).zfill(2)}_res{resolution2text(new_res)}_init.cif"
-        write_mmcif(points, cif_path)
+        write_mmcif(points*10, cif_path)
 
         # Updating parameters:
         self.m = new_m
@@ -243,7 +243,7 @@ class MD_simulation:
             forcefield = ForceField('forcefields/classic_sm_ff.xml')
             self.system = forcefield.createSystem(cif.topology, nonbondedCutoff=1*u.nanometer)
             integrator = mm.LangevinIntegrator(310, 0.05, 100 * mm.unit.femtosecond)
-
+            
             # Add forces
             self.adjust_force_params(new_res)
             params = self.force_params.copy()
