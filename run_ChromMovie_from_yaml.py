@@ -174,6 +174,14 @@ def heatmap2df(heatmap: np.ndarray, chrom: str, chrom_size: int) -> pd.DataFrame
     return df
 
 
+def identify_header(path, n=10, th=0.9):
+    """Function that specifies what header parameter to use automatically. Helps with reading csv files with header or without"""
+    df1 = pd.read_csv(path, header='infer', nrows=n)
+    df2 = pd.read_csv(path, header=None, nrows=n)
+    sim = (df1.dtypes.values == df2.dtypes.values).mean()
+    return 'infer' if sim < th else None
+
+
 def ChromMovie_from_yaml(config_path: str='config.yaml'):
     # Load configuration
     config = load_config(config_path)
@@ -201,7 +209,7 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
         files = os.listdir(main_config["input"])
         files = [file for file in files if file.endswith(".csv")]
         files.sort()
-        contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file)) for file in files]
+        contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
         contact_dfs = [df[(df.iloc[:, 0]==main_config["chrom"]) & (df.iloc[:, 3]==main_config["chrom"])] for df in contact_dfs]
         for df in contact_dfs:
             df["x"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
