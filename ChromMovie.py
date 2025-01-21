@@ -120,7 +120,7 @@ class MD_simulation:
             params["sc_coef"] = 0
         if self.user_force_params["ff_coef_evol"]:
             params["ff_coef"] = 0
-        self.add_forcefield(params)
+        self.add_forcefield(self.force_params)
 
         # Minimize energy
         print('Minimizing energy...')
@@ -150,8 +150,7 @@ class MD_simulation:
 
                 # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, res, step=0, save_heatmaps=True)
-                self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
-                                        params=self.force_params.copy())
+                self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif)
                 
                 # Saving structure after resolution simulation:
                 frames = self.get_frames_positions_npy()
@@ -160,7 +159,7 @@ class MD_simulation:
                 write_mmcif(points*10, cif_path)
                 
 
-    def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str, params: dict) -> None:
+    def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str) -> None:
         """Runs a simulation for a given resolution and saves the pdf report."""
         start = time.time()
         for i in range(1, self.N_steps):
@@ -171,20 +170,15 @@ class MD_simulation:
             if self.user_force_params["ev_coef_evol"] or self.user_force_params["bb_coef_evol"] or \
                 self.user_force_params["sc_coef_evol"] or self.user_force_params["ff_coef_evol"]:
                 t = np.arctan(10*(2*(i+1)/self.N_steps-1))/np.pi + 0.5
-                self.system.removeForce(self.ff_force_index)
-                self.system.removeForce(self.sc_force_index)
-                self.system.removeForce(self.bb_force_index)
-                self.system.removeForce(self.ev_force_index)
 
                 if self.user_force_params["ev_coef_evol"]:
-                    params["ev_coef"] = self.force_params["ev_coef"]*t
+                    self.simulation.context.setParameter("epsilon_ev", self.force_params["ev_coef"]*t)
                 if self.user_force_params["bb_coef_evol"]:
-                    params["bb_coef"] = self.force_params["bb_coef"]*t
+                    self.simulation.context.setParameter("epsilon_ev", self.force_params["bb_coef"]*t)
                 if self.user_force_params["sc_coef_evol"]:
-                    params["sc_coef"] = self.force_params["sc_coef"]*t
+                    self.simulation.context.setParameter("epsilon_ev", self.force_params["sc_coef"]*t)
                 if self.user_force_params["ff_coef_evol"]:
-                    params["ff_coef"] = self.force_params["ff_coef"]*t
-                self.add_forcefield(params)
+                    self.simulation.context.setParameter("epsilon_ev", self.force_params["ff_coef"]*t)
         
         print(f'Simulation finished succesfully.')
         if self.pdf_report:
