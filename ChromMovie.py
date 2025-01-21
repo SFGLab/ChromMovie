@@ -151,7 +151,7 @@ class MD_simulation:
                 # MD simulation at a given resolution
                 self.save_state(frame_path_npy, frame_path_cif, res, step=0, save_heatmaps=True)
                 self.simulate_resolution(resolution=res, sim_step=sim_step, frame_path_npy=frame_path_npy, frame_path_cif=frame_path_cif, 
-                                        params=params)
+                                        params=self.force_params.copy())
                 
                 # Saving structure after resolution simulation:
                 frames = self.get_frames_positions_npy()
@@ -177,13 +177,13 @@ class MD_simulation:
                 self.system.removeForce(self.ev_force_index)
 
                 if self.user_force_params["ev_coef_evol"]:
-                    params["ev_coef"] *= t
+                    params["ev_coef"] = self.force_params["ev_coef"]*t
                 if self.user_force_params["bb_coef_evol"]:
-                    params["bb_coef"] *= t
+                    params["bb_coef"] = self.force_params["bb_coef"]*t
                 if self.user_force_params["sc_coef_evol"]:
-                    params["sc_coef"] *= t
+                    params["sc_coef"] = self.force_params["sc_coef"]*t
                 if self.user_force_params["ff_coef_evol"]:
-                    params["ff_coef"] *= t
+                    params["ff_coef"] = self.force_params["ff_coef"]*t
                 self.add_forcefield(params)
         
         print(f'Simulation finished succesfully.')
