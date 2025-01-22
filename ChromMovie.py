@@ -65,6 +65,7 @@ class MD_simulation:
         self.user_force_params = force_params
         self.adjust_force_params(self.resolutions[0])
         self.pdf_report = main_config["pdf_report"]
+        self.remove_problematic = main_config["remove_problematic"]
 
 
     def adjust_force_params(self, resolution: int) -> list:
@@ -144,7 +145,7 @@ class MD_simulation:
         # Run molecular dynamics simulation
         if run_MD:
             for i, res in enumerate(self.resolutions):
-                if i != 0: 
+                if self.remove_problematic and i != 0: 
                     print("Removing problematic contacts...")
                     self.remove_problematic_contacts(res)
                 print(f'Running molecular dynamics at {resolution2text(res)} resolution ({i+1}/{len(self.resolutions)})...')

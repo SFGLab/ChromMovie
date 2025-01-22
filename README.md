@@ -66,6 +66,7 @@ List of parameter default values recommended by the authors and their descriptio
 |genome         |str            |mm10           |Genome assembly of the input data. Currently supported assemblies: hg19, hg38, mm10, GRCm39.|
 |chrom          |str            |chr1           |Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.|
 |pdf_report     |bool           |True           |Whether to save the simulation diagnostics in a pdf format.|
+|remove_problematic|bool           |False           |A flag indicating whether at each resolution round problematic contacts that the simulation was unable to resolve, should be removed.|
 |platform       |str            |OpenCL         |Available platoforms: CPU, CUDA, OpenCL, HIP|
 |resolutions    |str            |5,2            |Resolutions to be used for hierarchical modeling. Expected to be in the form of comma separated integer of float numbers in the units of Mb.|
 |N_steps        |int            |100            |Number of simulation steps to take at every resolution|

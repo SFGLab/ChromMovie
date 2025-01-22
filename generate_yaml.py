@@ -38,6 +38,10 @@ CONFIG_PARAMETERS = {
         'pdf_report': {
             'value': True,
             'description': 'Whether to save the simulation diagnostics in a pdf format.'
+        },
+        'remove_problematic': {
+            'value': False,
+            'description': 'A flag indicating whether at each resolution round problematic contacts that the simulation was unable to resolve, should be removed.'
         }
     },
 
