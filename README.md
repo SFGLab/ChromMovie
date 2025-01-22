@@ -5,6 +5,8 @@ ChromMovie: a molecular dynamics approach at simultaneous modeling of chromatin 
 
 ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3D chromatin structure up to the chromosome level. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
 
+![k562_chr12](https://github.com/user-attachments/assets/1a07ff34-edd8-4749-a73b-455ed3017c15)
+
 ## Installation
 
 ChromMovie software was primarily tested on Unix-based systems and with Python version 3.10.0. Before running ChromMovie please install the required packages listed in "requirements.txt".
