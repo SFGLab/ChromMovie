@@ -1,19 +1,19 @@
 # ChromMovie
-ChromMovie: a molecular dynamics approach at simultaneous modeling of chromatin conformation changes from multiple sets of single-cell Hi-C data
+ChromMovie: a molecular dynamics approach at simultaneous modeling of chromatin conformation changes from multiple sets of single-cell Hi-C data.
 
 ![ChromMovie_idea](https://github.com/user-attachments/assets/3a4af3e4-7db9-45cc-8eb6-a5c4696ae5f7)
 
-ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3D chromatin structure up to the chromosome level. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
+ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3D chromatin structure evolution up to the chromosome level and at a single cell resolution. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
 
 ![k562_chr12](https://github.com/user-attachments/assets/1a07ff34-edd8-4749-a73b-455ed3017c15)
 
 ## Installation
 
-ChromMovie software was primarily tested on Unix-based systems and with Python version 3.10.0. Before running ChromMovie please install the required packages listed in "requirements.txt".
+ChromMovie software was primarily tested on Unix-based systems and with Python version 3.10.0. Before running ChromMovie please install the required packages listed in `requirements.txt`.
 
 ## Input Data
 
-The input to ChromMovie consists of the ordered list of single cell interaction data. The data should reflet the cellular process of interest (cell cycle, cell maturation, etc.). The data are expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see examples). Each file should contain the single cell contacts in either `.bedpe` or `.csv` format with or without the header. First few rows of an example file may look like this:
+The input to ChromMovie consists of the ordered list of single cell interaction data. The data should reflect the cellular process of interest (cell cycle, cell maturation, etc.). The data are expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see `examples`). Each file should contain the single cell contacts in `.csv` format with or without the header. First few rows of an example file may look like this:
 
 ```text
 chrom1,start1,end1,chrom2,start2,end2
@@ -21,6 +21,8 @@ chr3,128668059,128668108,chr3,159257092,159257218
 chr3,50107348,50107498,chr3,51161425,51161468
 chr3,53660133,53660244,chr3,54171138,54171157
 ```
+
+If you are running ChromMovie for the first time, we encourage you to try some of our examples in `examples` folder.
 
 ## Parameter specification
 
@@ -33,6 +35,20 @@ After preparing the data and YAML configuration file, ChromMovie algorithm can b
 ```python
 ChromMovie.py
 ```
+
+## Output
+
+Simulation results will be saved in the folder `output`. The typical output of ChromMovie simulation consists of the following data:
+
+* `config.yaml` - Configuration file used for this particular simulation. This is a copy of the input configuration file.
+* `energy.csv` - File containing diagnostic information about Energy and Temperature of the simulation.
+* `simulation_reportXXX.pdf` - A pdf file with diagnostic information and figures created for each resolution XXX used in the simulation. Only generated if `pdf_report==True`.
+* `struct_00_init.cif` - A .cif file containing merged information about the initial structure for each simulation frame. Typically initial structure is a self-avoiding random walk.
+* `struct_XX_resYYY_init.cif` - A `.cif` file containing merged information about the initial structure at each resolution of the simulation (after initial energy minimization).
+* `struct_XX_resYYY_ready.cif` - A `.cif` file containing merged information about the final structure at each resolution of the simulation.
+* `frames_cif` - Folder containing all of the structures in `.cif` format for different steps and frames of the simulation and the lowest of the resolutions of the simulation. 
+* `frames_npy` - Folder containing contact heatmaps in `.npy` created from the input contact data for the lowest of the resolutions of the simulation.
+
 
 ## Simulation Arguments
 
