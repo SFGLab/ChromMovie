@@ -575,6 +575,7 @@ class MD_simulation:
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
+        plt.close()
 
         pdf.set_font('helvetica', size=font_section)
         pdf.cell(0, int(font_section/2), text="Forces coefficients", new_x="LMARGIN", new_y="NEXT")
@@ -593,6 +594,7 @@ class MD_simulation:
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
+        plt.close()
 
         pdf.set_font('helvetica', size=font_section)
         pdf.cell(0, font_section, text="Mean distances according to different forces", new_x="LMARGIN", new_y="NEXT")
@@ -667,6 +669,7 @@ class MD_simulation:
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
+        plt.close()
 
         # --------------------- Page 2
         pdf.add_page()
@@ -732,6 +735,7 @@ class MD_simulation:
         canvas.draw()
         img = Image.fromarray(np.asarray(canvas.buffer_rgba()))
         pdf.image(img, w=pdf.epw)
+        plt.close()
 
         pdf.output(os.path.join(self.output_path, f"simulation_report{resolution2text(resolution)}.pdf"))
         
