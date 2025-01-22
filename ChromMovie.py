@@ -199,7 +199,9 @@ class MD_simulation:
         """
         frames = self.get_frames_positions_npy()
         bin_edges = [i*res for i in range(self.m + 1)]
-        for frame in range(self.n):
+        all_contacts = []
+        removed = []
+        for frame in tqdm(range(self.n)):
             # determining which contacts to keep
             to_keep = []
             for c in self.contact_dfs[frame].index:
@@ -221,6 +223,12 @@ class MD_simulation:
 
             # saving new contact data
             self.contact_dfs[frame] = self.contact_dfs[frame][np.array(to_keep)]
+            removed.append(len(to_keep) - np.sum(to_keep))
+            all_contacts.append(len(to_keep))
+        
+        m_cont_removed = np.mean(removed)
+        average_percent = m_cont_removed/np.mean(all_contacts)*100
+        print(f"Removed an average of {m_cont_removed:.1f} (~{average_percent:.2f}%) contacts per frame.")
                 
 
     def get_heatmaps_from_dfs(self, res: int) -> list:
