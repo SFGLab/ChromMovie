@@ -38,16 +38,16 @@ ChromMovie.py
 
 ## Output
 
-Simulation results will be saved in the folder `output`. The typical output of ChromMovie simulation consists of the following data:
+Simulation results will be saved in the folder `output`. A typical output of ChromMovie simulation consists of the following data:
 
 * `config.yaml` - Configuration file used for this particular simulation. This is a copy of the input configuration file.
 * `energy.csv` - File containing diagnostic information about Energy and Temperature of the simulation.
-* `simulation_reportXXX.pdf` - A pdf file with diagnostic information and figures created for each resolution XXX used in the simulation. Only generated if `pdf_report==True`.
-* `struct_00_init.cif` - A .cif file containing merged information about the initial structure for each simulation frame. Typically initial structure is a self-avoiding random walk.
-* `struct_XX_resYYY_init.cif` - A `.cif` file containing merged information about the initial structure at each resolution of the simulation (after initial energy minimization).
-* `struct_XX_resYYY_ready.cif` - A `.cif` file containing merged information about the final structure at each resolution of the simulation.
+* `simulation_reportXXX.pdf` - `.pdf` file with diagnostic information and figures created for each resolution XXX used in the simulation. Only generated if `pdf_report==True`.
+* `struct_00_init.cif` - `.cif` file containing merged information about the initial structure for each simulation frame. Typically initial structure is a self-avoiding random walk.
+* `struct_XX_resYYY_init.cif` - `.cif` file containing merged information about the initial structure at each resolution of the simulation (after initial energy minimization).
+* `struct_XX_resYYY_ready.cif` - `.cif` file containing merged information about the final structure at each resolution of the simulation.
 * `frames_cif` - Folder containing all of the structures in `.cif` format for different steps and frames of the simulation and the lowest of the resolutions of the simulation. 
-* `frames_npy` - Folder containing contact heatmaps in `.npy` created from the input contact data for the lowest of the resolutions of the simulation.
+* `frames_npy` - Folder containing contact heatmaps in `.npy` format created from the input contact data for the lowest of the resolutions of the simulation.
 
 
 ## Simulation Arguments
