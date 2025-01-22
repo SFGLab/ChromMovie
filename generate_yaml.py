@@ -55,7 +55,7 @@ CONFIG_PARAMETERS = {
             'description': 'Number of simulation steps to take at every resolution'
         },
         'burnin': {
-            'value': 5,
+            'value': 0,
             'description': 'Number of simulation steps before starting collecting the simulatin diagnostic data'
         },
         'MC_step': {
@@ -83,7 +83,7 @@ CONFIG_PARAMETERS = {
             'description': 'Excluded Volume (EV) force coefficient'
         },
         'ev_coef_evol': {
-            'value': False,
+            'value': True,
             'description': 'Enable or disable the changing EV coefficient value.\nIf True the coefficient will start as 0 at the beginning of the simulation and reach ev_coef at the end.\nIf False the coefficient will have stable value of ev_coef.'
         },
 
@@ -143,7 +143,7 @@ CONFIG_PARAMETERS = {
             'description': 'Frame force (FF) distance after which the potential grows linearly.\nMust be strictly greater than ff_opt_dist.\nOnly applicable if ff_formula is harmonic'
         },
         'ff_coef': {
-            'value': 1000.0,
+            'value': 100.0,
             'description': 'Frame force (FF) force coefficient'
         },
         'ff_coef_evol': {

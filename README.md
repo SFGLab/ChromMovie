@@ -69,7 +69,7 @@ List of parameter default values recommended by the authors and their descriptio
 |platform       |str            |OpenCL         |Available platoforms: CPU, CUDA, OpenCL, HIP|
 |resolutions    |str            |5,2            |Resolutions to be used for hierarchical modeling. Expected to be in the form of comma separated integer of float numbers in the units of Mb.|
 |N_steps        |int            |100            |Number of simulation steps to take at every resolution|
-|burnin         |int            |5              |Number of simulation steps before starting collecting the simulatin diagnostic data|
+|burnin         |int            |0              |Number of simulation steps before starting collecting the simulation diagnostic data|
 |MC_step        |int            |1              |Simulation diagnostic data is going to be collected every MC_step|
 |sim_step       |int            |20             |The simulation step of Langevin integrator|
 |ev_formula     |str            |harmonic       |Type of the Excluded Volume (EV) repulsion. Available types: harmonic|
