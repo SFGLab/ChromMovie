@@ -144,6 +144,9 @@ class MD_simulation:
         # Run molecular dynamics simulation
         if run_MD:
             for i, res in enumerate(self.resolutions):
+                if i != 0: 
+                    print("Removing problematic contacts...")
+                    self.remove_problematic_contacts(res)
                 print(f'Running molecular dynamics at {resolution2text(res)} resolution ({i+1}/{len(self.resolutions)})...')
                 # Changing the system for a new resolution:
                 self.resolution_change(new_res=res, sim_step=sim_step, index=i+1, setup=(i!=0))
@@ -187,6 +190,38 @@ class MD_simulation:
         elapsed = end - start
         print(f'MD round finished in {elapsed/60:.2f} minutes.\n')
 
+
+    def remove_problematic_contacts(self, res: int, thresh: float=1.2) -> None:
+        """
+        Removes problematic contacts from self.contact_dfs.
+        Problematic contacts are those that even though connected by a contact they 
+        are further away from each other that thresh*self.force_params["sc_opt_dist"]
+        """
+        frames = self.get_frames_positions_npy()
+        bin_edges = [i*res for i in range(self.m + 1)]
+        for frame in range(self.n):
+            # determining which contacts to keep
+            to_keep = []
+            for c in self.contact_dfs[frame].index:
+                bin1 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'x'], bin_edges) - 1))
+                bin2 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'y'], bin_edges) - 1))
+                p1 = frames[frame][bin1, :]
+                p2 = frames[frame][bin2, :]
+                dist = np.sqrt(np.sum((p1 - p2)**2))
+                to_keep.append(dist <= thresh*self.force_params["sc_opt_dist"])
+            
+            # prevent from removing too many contacts
+            n_contacts = np.sum(to_keep)
+            min_n_contacts = int(0.8*len(to_keep))
+            if n_contacts < min_n_contacts: 
+                num_to_flip = min_n_contacts - n_contacts
+                true_indices = np.where(to_keep)[0]
+                flip_indices = np.random.choice(true_indices, size=num_to_flip, replace=False)
+                to_keep[flip_indices] = False
+
+            # saving new contact data
+            self.contact_dfs[frame] = self.contact_dfs[frame][np.array(to_keep)]
+                
 
     def get_heatmaps_from_dfs(self, res: int) -> list:
         """
