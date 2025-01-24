@@ -71,7 +71,7 @@ List of parameter default values recommended by the authors and their descriptio
 |chrom          |str            |chr1           |Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.|
 |pdf_report     |bool           |True           |Whether to save the simulation diagnostics in a pdf format.|
 |remove_problematic|bool           |False           |A flag indicating whether at each resolution round problematic contacts that the simulation was unable to resolve, should be removed.|
-|platform       |str            |OpenCL         |Available platoforms: CPU, CUDA, OpenCL, HIP|
+|platform       |str            |OpenCL         |Available platoforms: CPU, CUDA and OpenCL.|
 |resolutions    |str            |5,2            |Resolutions to be used for hierarchical modeling. Expected to be in the form of comma separated integer of float numbers in the units of Mb.|
 |N_steps        |int            |100            |Number of simulation steps to take at every resolution|
 |burnin         |int            |0              |Number of simulation steps before starting collecting the simulation diagnostic data|

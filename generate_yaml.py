@@ -48,7 +48,7 @@ CONFIG_PARAMETERS = {
     'simulation': {
         'platform': {
             'value': 'OpenCL',
-            'description': 'Available platoforms: CPU, CUDA, OpenCL, HIP'
+            'description': 'Available platoforms: CPU, CUDA and OpenCL.'
         },
         'resolutions': {
             'value': '5,2',
@@ -154,7 +154,6 @@ CONFIG_PARAMETERS = {
             'value': False,
             'description': 'Enable or disable the changing FF coefficient value.\nIf True the coefficient will start as 0 at the beginning of the simulation and reach ff_coef at the end.\nIf False the coefficient will have stable value of ff_coef.'
         }
-
     }
 }
 
