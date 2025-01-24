@@ -33,7 +33,7 @@ The simulation parameters used by ChromMovie are stored in YAML file. Example sp
 After preparing the data and YAML configuration file, ChromMovie algorithm can be used with the following command:
 
 ```python
-python3 -m ChromMovie.py --input config.yaml
+python3 -m ChromMovie --input config.yaml
 ```
 
 ## Output
