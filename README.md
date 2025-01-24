@@ -95,4 +95,4 @@ List of parameter default values recommended by the authors and their descriptio
 
 ## Copyrights
 
-The software is freely distributed under the GNU GENERAL PUBLIC LICENSE.
+The software is freely distributed under the GNU GENERAL PUBLIC LICENSE (GPL-3.0).
