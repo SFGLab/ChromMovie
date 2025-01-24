@@ -11,6 +11,10 @@ ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3
 
 ChromMovie software was primarily tested on Unix-based systems and with Python version 3.10.0. Before running ChromMovie please install the required packages listed in `requirements.txt`.
 
+```bash
+pip install -r requirements.txt
+```
+
 ## Input Data
 
 The input to ChromMovie consists of the ordered list of single cell interaction data. The data should reflect the cellular process of interest (cell cycle, cell maturation, etc.). The data are expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see `examples`). Each file should contain the single cell contacts in `.csv` format with or without the header. First few rows of an example file may look like this:
@@ -32,7 +36,7 @@ The simulation parameters used by ChromMovie are stored in YAML file. Example sp
 
 After preparing the data and YAML configuration file, ChromMovie algorithm can be used with the following command:
 
-```python
+```bash
 python3 -m ChromMovie --input config.yaml
 ```
 
