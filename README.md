@@ -1,5 +1,6 @@
 # ChromMovie
-ChromMovie: a molecular dynamics approach at simultaneous modeling of chromatin conformation changes from multiple sets of single-cell Hi-C data.
+
+ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Hi-C Maps.
 
 ![ChromMovie_idea](https://github.com/user-attachments/assets/3a4af3e4-7db9-45cc-8eb6-a5c4696ae5f7)
 
