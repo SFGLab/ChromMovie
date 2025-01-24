@@ -35,7 +35,7 @@ The simulation parameters used by ChromMovie are stored in YAML file. Example sp
 
 ## Running ChromMovie
 
-After preparing the data and YAML configuration file, ChromMovie algorithm can be used with the following command:
+After preparing the data and YAML configuration file, ChromMovie algorithm can be run for example with the following command:
 
 ```bash
 python3 -m ChromMovie --input config.yaml
@@ -80,7 +80,7 @@ List of parameter default values recommended by the authors and their descriptio
 |sim_step       |int            |20             |The simulation step of Langevin integrator|
 |ev_formula     |str            |harmonic       |Type of the Excluded Volume (EV) repulsion. Available types: harmonic|
 |ev_min_dist    |float          |1.0            |Excluded Volume (EV) minimal distance|
-|ev_coef        |float          |1000.0         |Excluded Volume (EV) force coefficient|
+|ev_coef        |float          |50.0           |Excluded Volume (EV) force coefficient|
 |ev_coef_evol   |bool           |False          |Enable or disable the changing EV coefficient value.|
 |bb_formula     |str            |harmonic       |Type of the Backbone (BB) potential. Available types: harmonic, gaussian|
 |bb_opt_dist    |float          |1.0            |Backbone (BB) optimal distance|
@@ -90,12 +90,12 @@ List of parameter default values recommended by the authors and their descriptio
 |sc_formula     |str            |harmonic       |Type of the Single cell contact (SC) potential. Available types: harmonic, gaussian|
 |sc_opt_dist    |float          |1.0            |Single cell contact (SC) optimal distance|
 |sc_lin_thresh  |float          |2.0            |Single cell contact (SC) distance after which the potential grows linearly.|
-|sc_coef        |float          |1000.0         |Single cell contact (SC) force coefficient|
+|sc_coef        |float          |100.0          |Single cell contact (SC) force coefficient|
 |sc_coef_evol   |bool           |False          |Enable or disable the changing SC coefficient value.|
 |ff_formula     |str            |harmonic       |Type of the Frame force (FF) potential. Available types: harmonic, gaussian|
 |ff_opt_dist    |float          |1.0            |Frame force (FF) optimal distance|
 |ff_lin_thresh  |float          |2.0            |Frame force (FF) distance after which the potential grows linearly.|
-|ff_coef        |float          |1000.0         |Frame force (FF) force coefficient|
+|ff_coef        |float          |100.0          |Frame force (FF) force coefficient|
 |ff_coef_evol   |bool           |False          |Enable or disable the changing FF coefficient value.|
 
 ## Copyrights

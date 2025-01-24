@@ -83,7 +83,7 @@ CONFIG_PARAMETERS = {
             'description': 'Excluded Volume (EV) minimal distance'
         },
         'ev_coef': {
-            'value': 1000.0,
+            'value': 50.0,
             'description': 'Excluded Volume (EV) force coefficient'
         },
         'ev_coef_evol': {
@@ -126,7 +126,7 @@ CONFIG_PARAMETERS = {
             'description': 'Single cell contact (SC) distance after which the potential grows linearly.\nMust be strictly greater than sc_opt_dist.\nOnly applicable if sc_formula is harmonic'
         },
         'sc_coef': {
-            'value': 1000.0,
+            'value': 100.0,
             'description': 'Single cell contact (SC) force coefficient'
         },
         'sc_coef_evol': {
