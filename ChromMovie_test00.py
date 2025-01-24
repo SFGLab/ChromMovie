@@ -6,12 +6,12 @@ from scipy.stats import wilcoxon, mannwhitneyu
 import openmm as mm
 from Bio.PDB import qcprot
 
-from ChromMovie import *
+from ChromMovie_core import *
 from create_insilico import get_structure_01, get_hicmaps
 
 from generate_yaml import generate_yaml_config
 from run_ChromMovie_from_yaml import ChromMovie_from_yaml
-
+from reporter_utils import get_local_sc_violation
 
 def create_random_matrix(m: int, n_contact: int) -> np.array:
     if (m**2-m)/2 < n_contact:
@@ -96,18 +96,19 @@ def get_qcp_fit_model(image_structure, gd_structure):
 
 
 if __name__ == "__main__":
-    test_no = 17
+    test_no = "on_off3"
 
-    n = 10
-    m = 20
-
+    n = 5
+    m = 40
+    n_contacts = 50
+    
     out_path = "./results/tests/test{}/".format(str(test_no).zfill(2))
-    N_steps = 100
+    N_steps = 50
     sim_step = 20
     
     # heatmaps = [create_random_matrix(m, 40) for i in range(n)]
     structure_set = get_structure_02(frames=n, m=m)
-    heatmaps = get_hicmaps(structure_set, n_contacts=50)
+    heatmaps = get_hicmaps(structure_set, n_contacts=n_contacts)
 
     # Saving the ground truth structure:
     path_init = os.path.join(out_path, "ground_truth")
@@ -117,35 +118,54 @@ if __name__ == "__main__":
         save_points_as_pdb(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.pdb"))
 
 
-    df_results = pd.DataFrame(columns = ["base_d", "k_ev", "k_bb", "k_sc", "k_ff"] +[f"MW_pval_frame{i}" for i in range(n)])
-    n_tests = 1000
+    df_results = pd.DataFrame(columns = ["base_d", "k_ev", "k_bb", "k_sc", "k_ff", "k_ev_evol", "k_bb_evol", "k_sc_evol", "k_ff_evol"] + [f"RMSD_frame{i}" for i in range(n)] + [f"scviol_frame{i}" for i in range(n)])
+    n_tests = 1_000
     for i in range(n_tests):
         print(f"------Running test no {i}------")
         # heatmaps = [add_noise(mat, 5) for mat in heatmaps_orig]
 
         base_d = 1 #10**np.random.uniform(-2, 0)
-        k_ev = 1e3 # 10**np.random.uniform(0, 5)
+        k_ev = 1e2 #10**np.random.uniform(0, 5)
         k_bb = 1e3 #10**np.random.uniform(0, 5)
-        k_sc = 1e3 #10**np.random.uniform(0, 5)
-        k_ff = 10**np.random.uniform(0, 6)
+        k_sc = 1e2 #10**np.random.uniform(0, 5)
+        k_ff = 1e2
+
+        k_ev_evol = bool(np.random.randint(2))
+        k_bb_evol = bool(np.random.randint(2))
+        k_sc_evol = bool(np.random.randint(2))
+        k_ff_evol = bool(np.random.randint(2))
+        
+        # std_config = {
+        #     'general': {
+        #         'input': 'examples/example1_cell_cycle',
+        #         'output': out_path,
+        #         'pdf_report': True
+        #     }
+        # }
 
         user_specified_config = {
             'general': {
                 'input': None,
                 'output': out_path,
-                'n': 5,
-                'm': 50,
+                'n': n,
+                'm': m,
+                'n_contacts': n_contacts,
                 'artificial_structure': 2,
                 'pdf_report': False
             },
             'simulation': {
-            
+                'resolutions': "2,1",
+                'N_steps': N_steps
             },
             'forcefield': {
                 'ev_coef': k_ev,
                 'bb_coef': k_bb,
                 'sc_coef': k_sc,
-                'ff_coef': k_ff
+                'ff_coef': k_ff,
+                'ev_coef_evol': k_ev_evol,
+                'bb_coef_evol': k_bb_evol,
+                'sc_coef_evol': k_sc_evol,
+                'ff_coef_evol': k_ff_evol,
             }
         }
 
@@ -158,12 +178,18 @@ if __name__ == "__main__":
             # structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
             # pvals.append(test_mannwhitney(heatmaps[frame], structure))
 
-            structure = point_reader(os.path.join(out_path, "frames_pdb", "step{}_frame{}.pdb".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
+            structure = mmcif2npy(os.path.join(out_path, "frames_cif", "step{}_frame{}.cif".format(str(N_steps-1).zfill(3), str(frame).zfill(3))))
             structure_QCP = get_qcp_fit_model(structure_set[frame], structure)
             rmsds.append(rmsd(structure_QCP, structure_set[frame]))
-        
-        df_results.loc[i] = [base_d, k_ev, k_bb, k_sc, k_ff] + rmsds
 
+            cif_folder = os.path.join(out_path, "frames_cif")
+            npy_folder = os.path.join(out_path, "frames_npy")
+            heatmaps = [np.load(os.path.join(npy_folder, f"res2Mb_frame{str(i).zfill(3)}.npy")) for i in range(n)]
+            df_sc = get_local_sc_violation(cif_folder, base_d*1.2, n, heatmaps)
+            df_sc = df_sc.groupby("frame").sum().reset_index()
+            violations = list(df_sc["sum_viol"])
+        
+        df_results.loc[i] = [base_d, k_ev, k_bb, k_sc, k_ff, k_ev_evol, k_bb_evol, k_sc_evol, k_ff_evol] + rmsds + violations
 
         if (i+1)%20 == 0:
             df_results.to_csv(os.path.join(out_path, "results_test{}.csv".format(str(test_no).zfill(2))))

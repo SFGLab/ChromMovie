@@ -6,7 +6,7 @@ import yaml
 import os
 import pandas as pd
 import shutil
-from ChromMovie import *
+from ChromMovie_core import *
 
 
 def load_config(config_file: str):
