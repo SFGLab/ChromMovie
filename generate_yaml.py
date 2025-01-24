@@ -4,7 +4,7 @@ import yaml
 CONFIG_PARAMETERS = {
     'general':{
         'input': {
-            'value': None,
+            'value': 'examples/example1_cell_cycle',
             'description': 'Folder containing input scHi-C contacts in csv format. If \'None\' simulated scHi-C maps are going to be used.'
         },
         'output': {
