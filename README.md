@@ -16,6 +16,8 @@ ChromMovie software was primarily tested on Unix-based systems and with Python v
 pip install -r requirements.txt
 ```
 
+We recommend running ChromMovie on a GPU for optimal performance. To do so, please ensure that CUDA is properly configured on your system. To utilize the GPU, set the `platform` parameter to either `CUDA` or `OpenCL`. If a GPU is not available, use `CPU` (see "Simulation Arguments" section).
+
 ## Input Data
 
 The input to ChromMovie consists of the ordered list of single cell interaction data. The data should reflect the cellular process of interest (cell cycle, cell maturation, etc.). The data are expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see `examples`). Each file should contain the single cell contacts in `.csv` format with or without the header. First few rows of an example file may look like this:
@@ -31,7 +33,7 @@ If you are running ChromMovie for the first time, we encourage you to try some o
 
 ## Parameter specification
 
-The simulation parameters used by ChromMovie are stored in YAML file. Example specification is provided in `config.yaml` file. The path to the YAML configuration file is a main input parameter of ChromMovie script.
+The simulation parameters used by ChromMovie are stored in YAML file. Example specification is provided in `config.yaml` file. The path to the YAML configuration file is the main input parameter of ChromMovie script.
 
 ## Running ChromMovie
 
@@ -52,7 +54,7 @@ Simulation results will be saved in the folder `output`. A typical output of Chr
 * `struct_XX_resYYY_init.cif` - `.cif` file containing merged information about the initial structure at each resolution of the simulation (after initial energy minimization).
 * `struct_XX_resYYY_ready.cif` - `.cif` file containing merged information about the final structure at each resolution of the simulation.
 * `frames_cif` - Folder containing all of the structures in `.cif` format for different steps and frames of the simulation and the lowest of the resolutions of the simulation. 
-* `frames_npy` - Folder containing contact heatmaps in `.npy` format created from the input contact data for the lowest of the resolutions of the simulation.
+* `frames_npy` - Folder containing contact heatmaps in `.npy` format created from the input contact data for all of the resolutions of the simulation.
 
 
 ## Simulation Arguments
