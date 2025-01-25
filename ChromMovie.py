@@ -14,7 +14,7 @@ def main():
         "--input",
         type=str,
         required=True,
-        help="Folder containing input scHi-C contacts in csv format."
+        help="Folder containing input configuration file in yaml format."
     )
 
     args = parser.parse_args()
