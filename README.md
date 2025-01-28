@@ -40,7 +40,7 @@ The simulation parameters used by ChromMovie are stored in YAML file. Example sp
 After preparing the data and YAML configuration file, ChromMovie algorithm can be run for example with the following command:
 
 ```bash
-python3 -m ChromMovie --input config.yaml
+python3 -m ChromMovie -i config.yaml
 ```
 
 ## Output

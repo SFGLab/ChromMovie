@@ -12,6 +12,7 @@ def main():
 
     parser.add_argument(
         "--input",
+        "-i",
         type=str,
         required=True,
         help="Folder containing input configuration file in yaml format."
