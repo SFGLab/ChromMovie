@@ -2,7 +2,7 @@ biopython==1.84
 fpdf2==2.8.1
 hilbertcurve==2.0.5
 matplotlib==3.10.0
-numpy==2.2.2
+numpy==1.26.4
 OpenMM==8.1.1
 pandas==2.2.3
 Pillow==11.1.0
