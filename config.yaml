@@ -85,19 +85,19 @@ descriptions:
       If False the coefficient will have stable value of ff_coef.'
 general:
   input: examples/example1_cell_cycle
-  output: ./results/tests/teston_off3/
+  output: results
   n: 5
   m: 40
   n_contacts: 50
   artificial_structure: 1
-  genome: mm10
+  genome: hg38
   chrom: chr1
   pdf_report: true
   remove_problematic: false
 simulation:
   platform: OpenCL
   resolutions: 5,2
-  N_steps: 50
+  N_steps: 100
   burnin: 0
   MC_step: 1
   sim_step: 20
