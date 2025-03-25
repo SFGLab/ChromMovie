@@ -66,10 +66,6 @@ List of parameter default values recommended by the authors and their descriptio
 |---------------|---------------|---------------|---------------|
 |input          |str            |examples/example1_cell_cycle|Folder containing input scHi-C contacts in csv format. If 'None' simulated scHi-C maps are going to be used.|
 |output         |str            |results        |Output folder for storing simulation results|
-|n              |int            |10             |Number of scHi-C frames to be generated. Only applicable if input==None.|
-|m              |int            |100            |Size of scHi-C frames to be generated (number of beads). Only applicable if input==None.|
-|n_contacts     |int            |50             |Number of contacts to be drawn from each in silico structure. Only applicable if input==None.|
-|artificial_structure|int            |1              |Index of the in silico structure to be generated as simulation input.|
 |genome         |str            |mm10           |Genome assembly of the input data. Currently supported assemblies: hg19, hg38, mm10, GRCm39.|
 |chrom          |str            |chr1           |Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.|
 |pdf_report     |bool           |True           |Whether to save the simulation diagnostics in a pdf format.|
