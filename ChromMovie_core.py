@@ -34,9 +34,10 @@ class MD_simulation:
         self.contact_dfs = contact_dfs
         
         self.n = len(contact_dfs)
-        init_resolution = float(str(sim_config['resolutions']).split(",")[0].strip())*1_000_000
-        self.m = int(np.ceil(self.chrom_size/init_resolution))
-        self.heatmaps = self.get_heatmaps_from_dfs(init_resolution)
+        self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
+        self.resolutions.sort(reverse=True)
+        self.m = int(np.ceil(self.chrom_size/self.resolutions[0]))
+        self.heatmaps = self.get_heatmaps_from_dfs(self.resolutions[0])
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -45,8 +46,7 @@ class MD_simulation:
         self.N_steps = N_steps
         self.step, self.burnin = MC_step, burnin//MC_step
         self.platform = platform
-        self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
-        self.resolutions.sort(reverse=True)
+        
         self.user_force_params = force_params
         self.adjust_force_params(self.resolutions[0])
         self.pdf_report = main_config["pdf_report"]
