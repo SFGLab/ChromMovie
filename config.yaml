@@ -3,15 +3,6 @@ descriptions:
     input: Folder containing input scHi-C contacts in csv format. If 'None' simulated
       scHi-C maps are going to be used.
     output: Output folder for storing simulation results
-    n: Number of scHi-C frames to be generated. Only applicable if input==None.
-    m: Size of scHi-C frames to be generated (number of beads). Only applicable if
-      input==None.
-    n_contacts: Number of contacts to be drawn from each in silico structure. Only
-      applicable if input==None.
-    artificial_structure: 'Index of the in silico structure to be generated as simulation
-      input.
-
-      Only applicable if input==None. Available structure indices: 1, 2'
     genome: 'Genome assembly of the input data. Currently supported assemblies: hg19,
       hg38, mm10, GRCm39.'
     chrom: Chromosome to be modeled. The input files are going to be filtered for
@@ -86,10 +77,6 @@ descriptions:
 general:
   input: examples/example1_cell_cycle
   output: results
-  n: 5
-  m: 40
-  n_contacts: 50
-  artificial_structure: 1
   genome: hg38
   chrom: chr1
   pdf_report: true

@@ -22,7 +22,7 @@ from PIL import Image
 
 
 class MD_simulation:
-    def __init__(self, main_config: dict, sim_config: dict, heatmaps: list, contact_dfs: list, output_path: str, 
+    def __init__(self, main_config: dict, sim_config: dict, contact_dfs: list, output_path: str, 
                  N_steps: int, burnin: int, MC_step: int, platform: str, force_params: dict):
         '''
         Expects either heatmaps or contact_dfs to be not None.
@@ -33,25 +33,10 @@ class MD_simulation:
                                     header=None, index_col=0, sep="\t").loc[self.chrom, 1]
         self.contact_dfs = contact_dfs
         
-        if contact_dfs is not None:
-            self.n = len(contact_dfs)
-            init_resolution = float(str(sim_config['resolutions']).split(",")[0].strip())*1_000_000
-            self.m = int(np.ceil(self.chrom_size/init_resolution))
-            self.heatmaps = self.get_heatmaps_from_dfs(init_resolution)
-        else:
-            n = len(heatmaps)
-            if n > 1:
-                self.n = n
-            else:
-                raise(Exception("At least two heatmaps must be provided. Got: {}".format(str(n))))
-            if not all(h.shape == heatmaps[0].shape for h in heatmaps):
-                raise ValueError("Not all heatmaps have the same shape.")
-            if heatmaps[0].shape[0] != heatmaps[0].shape[1]:
-                raise ValueError("The heatmaps must be rectangular.")
-            self.m = heatmaps[0].shape[0]
-            if not all(((h==0) | (h==1)).all() for h in heatmaps):
-                raise ValueError("Not all heatmaps are binary.")
-            self.heatmaps = heatmaps
+        self.n = len(contact_dfs)
+        init_resolution = float(str(sim_config['resolutions']).split(",")[0].strip())*1_000_000
+        self.m = int(np.ceil(self.chrom_size/init_resolution))
+        self.heatmaps = self.get_heatmaps_from_dfs(init_resolution)
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)

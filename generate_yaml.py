@@ -11,22 +11,6 @@ CONFIG_PARAMETERS = {
             'value': 'results',
             'description': 'Output folder for storing simulation results'
         },
-        'n': {
-            'value': 10,
-            'description': 'Number of scHi-C frames to be generated. Only applicable if input==None.'
-        },
-        'm': {
-            'value': 100,
-            'description': 'Size of scHi-C frames to be generated (number of beads). Only applicable if input==None.'
-        },
-        'n_contacts': {
-            'value': 50,
-            'description': 'Number of contacts to be drawn from each in silico structure. Only applicable if input==None.'
-        },
-        'artificial_structure': {
-            'value': 1,
-            'description': 'Index of the in silico structure to be generated as simulation input.\nOnly applicable if input==None. Available structure indices: 1, 2'
-        },
         'genome': {
             'value': 'mm10',
             'description': 'Genome assembly of the input data. Currently supported assemblies: hg19, hg38, mm10, GRCm39.'

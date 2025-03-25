@@ -27,26 +27,6 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
         if len(files) == 0:
             raise ValueError("No csv files were found in the input directory")
     
-    if not isinstance(m_config["n"], (int)):
-        raise TypeError("Invalid 'n' parameter type. Expected 'int', got "+str(type(m_config["input"])))
-    if m_config["n"] <= 0:
-        raise ValueError("n must be greater than 0")
-    
-    if not isinstance(m_config["m"], (int)):
-        raise TypeError("Invalid 'm' parameter type. Expected 'int', got "+str(type(m_config["input"])))
-    if m_config["m"] <= 0:
-        raise ValueError("m must be greater than 0")
-    
-    if not isinstance(m_config["n_contacts"], (int)):
-        raise TypeError("Invalid 'n_contacts' parameter type. Expected 'int', got "+str(type(m_config["input"])))
-    if m_config["n_contacts"] <= 0:
-        raise ValueError("n_contacts must be greater than 0")
-    
-    if not isinstance(m_config["artificial_structure"], (int)):
-        raise TypeError("Invalid 'artificial_structure' parameter type. Expected 'int', got "+str(type(m_config["input"])))
-    if m_config["artificial_structure"] <= 0:
-        raise ValueError(f"artificial_structure must be either '1' or '2'. Got "+str(m_config["artificial_structure"]))
-    
     if m_config["genome"] not in [file.split(".")[0] for file in os.listdir("chrom_sizes")]:
         raise ValueError(f"Cannot find chromosome sizes for genome assembly: "+str(m_config["genome"]))
 
@@ -200,32 +180,16 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
     shutil.copy(config_path, os.path.join(main_config["output"], os.path.basename(config_path)))
 
     # Creating input numpy heatmaps
-    chrom = main_config["chrom"]
-    chrom_size = pd.read_csv("chrom_sizes/"+main_config["genome"]+".txt", 
-                                    header=None, index_col=0, sep="\t").loc[chrom, 1]
-    heatmaps = None
-    contact_dfs = None
-    if main_config["input"] is not None:
-        files = os.listdir(main_config["input"])
-        files = [file for file in files if file.endswith(".csv")]
-        files.sort()
-        contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
-        contact_dfs = [df[(df.iloc[:, 0]==main_config["chrom"]) & (df.iloc[:, 3]==main_config["chrom"])] for df in contact_dfs]
-        for df in contact_dfs:
-            df["x"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
-            df["y"] = [int((s+e)/2) for s, e in zip(df.iloc[:,4], df.iloc[:,4])]
-            df["chrom"] = [main_config["chrom"]]*df.shape[0]
-        contact_dfs = [df[["chrom", "x", "y"]] for df in contact_dfs]
-    elif main_config["artificial_structure"] == 1:
-        structure_set = get_structure_01(frames=main_config["n"], m=main_config["m"])
-        heatmaps = get_hicmaps(structure_set, n_contacts=main_config["n_contacts"])
-        contact_dfs = [heatmap2df(heatmap, chrom, chrom_size) for heatmap in heatmaps]
-    elif main_config["artificial_structure"] == 2:
-        structure_set = get_structure_02(frames=main_config["n"], m=main_config["m"])
-        heatmaps = get_hicmaps(structure_set, n_contacts=main_config["n_contacts"])
-        contact_dfs = [heatmap2df(heatmap, chrom, chrom_size) for heatmap in heatmaps]
-    else:
-        raise(Exception("Neither input nor artificial structure were correctly specified."))
+    files = os.listdir(main_config["input"])
+    files = [file for file in files if file.endswith(".csv")]
+    files.sort()
+    contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
+    contact_dfs = [df[(df.iloc[:, 0]==main_config["chrom"]) & (df.iloc[:, 3]==main_config["chrom"])] for df in contact_dfs]
+    for df in contact_dfs:
+        df["x"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
+        df["y"] = [int((s+e)/2) for s, e in zip(df.iloc[:,4], df.iloc[:,4])]
+        df["chrom"] = [main_config["chrom"]]*df.shape[0]
+    contact_dfs = [df[["chrom", "x", "y"]] for df in contact_dfs]
     
     # Saving the ground truth structure (if applicable):
     if main_config["input"] is None:
@@ -236,7 +200,7 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
             write_mmcif(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
     # Run ChromMovie
-    md = MD_simulation(main_config=main_config, sim_config=sim_config, heatmaps=heatmaps, contact_dfs=contact_dfs, output_path=main_config["output"], 
+    md = MD_simulation(main_config=main_config, sim_config=sim_config, contact_dfs=contact_dfs, output_path=main_config["output"], 
                        N_steps=sim_config["N_steps"], burnin=sim_config["burnin"], MC_step=sim_config["MC_step"], 
                        platform=sim_config["platform"], force_params=force_config)
     md.run_pipeline(write_files=True, sim_step=sim_config["sim_step"])
