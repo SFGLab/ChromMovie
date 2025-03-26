@@ -3,6 +3,7 @@
 #########################################################################
 
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
 from openmm.app import PDBxFile
 
@@ -214,3 +215,16 @@ def resolution2text(resolution: int):
     formatted_num = f"{resolution:.1f}".rstrip('0').rstrip('.')
     result = f"{formatted_num}{suffix}"
     return result
+
+
+def get_unique_chroms(contact_dfs: list) -> list:
+    """
+    Returns a single list of all unique chromosomes taken from columns 'chrom1' and 'chrom2' 
+    of each of the data frames in the list 'contact_dfs'.
+    """
+    unique_values = set()
+    for df in contact_dfs:
+        values = pd.concat([df['chrom1'], df['chrom2']])
+        unique_values.update(values.unique())
+    return list(unique_values)
+

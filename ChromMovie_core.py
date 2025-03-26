@@ -28,15 +28,17 @@ class MD_simulation:
         Expects either heatmaps or contact_dfs to be not None.
         '''
         self.genome = main_config["genome"]
-        self.chrom = main_config["chrom"]
-        self.chrom_size = pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
-                                    header=None, index_col=0, sep="\t").loc[self.chrom, 1]
+        self.chroms = get_unique_chroms(contact_dfs)
+        print("Chromosome detected in the input data: ", self.chroms)
+        self.chrom_sizes = [pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
+                                    header=None, index_col=0, sep="\t").loc[chrom, 1] 
+                                    for chrom in self.chroms]
         self.contact_dfs = contact_dfs
         
         self.n = len(contact_dfs)
         self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
         self.resolutions.sort(reverse=True)
-        self.m = int(np.ceil(self.chrom_size/self.resolutions[0]))
+        self.ms = [int(np.ceil(chrom_size/self.resolutions[0])) for chrom_size in self.chrom_sizes]
         self.heatmaps = self.get_heatmaps_from_dfs(self.resolutions[0])
         self.contact_dicts = self.get_dicts_from_dfs(self.resolutions[0])
 
@@ -81,7 +83,7 @@ class MD_simulation:
         '''
         # Define initial structure
         print('Building initial structure...')
-        points_init_frame = self_avoiding_random_walk(n=self.m, step=self.force_params["bb_opt_dist"], bead_radius=self.force_params["bb_opt_dist"]/2)
+        points_init_frame = self_avoiding_random_walk(n=self.ms[0], step=self.force_params["bb_opt_dist"], bead_radius=self.force_params["bb_opt_dist"]/2)
         points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params["bb_opt_dist"] for i in range(self.n)]))
 
         write_mmcif(points, self.output_path+'/struct_00_init.cif')
@@ -89,7 +91,7 @@ class MD_simulation:
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
         for frame in range(self.n):
-            write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
+            write_mmcif(points[(frame*self.ms[0]):((frame+1)*self.ms[0]), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
 
         # Define System
         cif = PDBxFile(self.output_path+'/struct_00_init.cif')
@@ -185,15 +187,15 @@ class MD_simulation:
         are further away from each other that thresh*self.force_params["sc_opt_dist"]
         """
         frames = self.get_frames_positions_npy()
-        bin_edges = [i*res for i in range(self.m + 1)]
+        bin_edges = [i*res for i in range(self.ms[0] + 1)]
         all_contacts = []
         removed = []
         for frame in tqdm(range(self.n)):
             # determining which contacts to keep
             to_keep = []
             for c in self.contact_dfs[frame].index:
-                bin1 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos1'], bin_edges) - 1))
-                bin2 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos2'], bin_edges) - 1))
+                bin1 = int(min(self.ms[0]-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos1'], bin_edges) - 1))
+                bin2 = int(min(self.ms[0]-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos2'], bin_edges) - 1))
                 p1 = frames[frame][bin1, :]
                 p2 = frames[frame][bin2, :]
                 dist = np.sqrt(np.sum((p1 - p2)**2))
@@ -222,16 +224,16 @@ class MD_simulation:
         """
         Creates a list of heatmaps according to a given resolution based on contact information in self.contact_dfs.
         """
-        new_m = int(np.ceil(self.chrom_size / res))
-        bin_edges = [i*res for i in range(new_m + 1)]
+        new_ms = [int(np.ceil(chrom_size / res)) for chrom_size in self.chrom_sizes]
+        bin_edges = [i*res for i in range(new_ms[0] + 1)]
 
         new_heatmaps = []
         for df in self.contact_dfs:
             x_bins = np.digitize(df['pos1'], bin_edges) - 1
             y_bins = np.digitize(df['pos2'], bin_edges) - 1
-            bin_matrix = np.zeros((new_m, new_m), dtype=int)
+            bin_matrix = np.zeros((new_ms[0], new_ms[0]), dtype=int)
             for x_bin, y_bin in zip(x_bins, y_bins):
-                if 0 <= x_bin < new_m and 0 <= y_bin < new_m:
+                if 0 <= x_bin < new_ms[0] and 0 <= y_bin < new_ms[0]:
                     bin_matrix[x_bin, y_bin] += 1
                     bin_matrix[y_bin, x_bin] += 1
             new_heatmaps.append(bin_matrix)
@@ -245,8 +247,8 @@ class MD_simulation:
         The keys of the dictionaries are in the form (chrom, i, j), where i and j and the indices of bins in the resolution res.
         The values of the dictionaries are the number of contacts in the specified bin.
         """
-        new_m = int(np.ceil(self.chrom_size / res))
-        bin_edges = [i*res for i in range(new_m + 1)]
+        new_ms = [int(np.ceil(chrom_size / res)) for chrom_size in self.chrom_sizes]
+        bin_edges = [i*res for i in range(new_ms[0] + 1)]
 
         new_dicts = []
         for df in self.contact_dfs:
@@ -266,7 +268,7 @@ class MD_simulation:
     def resolution_change(self, new_res: int, sim_step: int, index: int, setup: bool=False) -> None:
         """
         Prepares the system for the simulation in new resolution new_res.
-        Updates self.heatmaps, positions of the beads (with added addtional ones) and self.m.
+        Updates self.heatmaps, positions of the beads (with added addtional ones) and self.ms.
         The OpenMM system is reinitailized and ready for a new simulation.
         """
         # Rescaling heatmaps:
@@ -274,9 +276,9 @@ class MD_simulation:
         self.contact_dicts = self.get_dicts_from_dfs(new_res)
 
         # Interpolating structures:
-        new_m = int(np.ceil(self.chrom_size / new_res))
+        new_ms = [int(np.ceil(chrom_size / new_res)) for chrom_size in self.chrom_sizes]
         frames = self.get_frames_positions_npy()
-        frames_new = [extrapolate_points(frame, new_m) for frame in frames]
+        frames_new = [extrapolate_points(frame, new_ms[0]) for frame in frames]
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
@@ -284,7 +286,7 @@ class MD_simulation:
         write_mmcif(points*10, cif_path)
 
         # Updating parameters:
-        self.m = new_m
+        self.ms = new_ms
 
         if setup:
             # Define System
@@ -321,9 +323,9 @@ class MD_simulation:
         positions = self.state.getPositions()
         frames = []
         for frame in range(self.n):
-            x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
-            y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
-            z = [positions[i].z for i in range(frame*self.m, (frame+1)*self.m)]
+            x = [positions[i].x for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
+            y = [positions[i].y for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
+            z = [positions[i].z for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
             frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
                                             np.array(y).reshape((len(y), 1)), 
                                             np.array(z).reshape((len(z), 1))))
@@ -358,7 +360,7 @@ class MD_simulation:
         self.ev_force.addPerParticleParameter('frame')
         
         for frame in range(self.n):
-            for _ in range(self.m):
+            for _ in range(self.ms[0]):
                 self.ev_force.addParticle([frame])
         self.ev_force_index = self.system.addForce(self.ev_force)
 
@@ -379,8 +381,8 @@ class MD_simulation:
         self.bond_force.addGlobalParameter('epsilon_bb', defaultValue=coef)
 
         for frame in range(self.n):
-            for i in range(self.m-1):
-                self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1)
+            for i in range(self.ms[0]-1):
+                self.bond_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + i + 1)
         self.bb_force_index = self.system.addForce(self.bond_force)
 
 
@@ -400,12 +402,12 @@ class MD_simulation:
         self.sc_force.addGlobalParameter('epsilon_sc', defaultValue=coef)
 
         for frame in range(self.n):
-            for i in range(self.m):
-                for j in range(i+1, self.m):
-                    m_ij = self.contact_dicts[frame].get((self.chrom, i, self.chrom, j), 0)
+            for i in range(self.ms[0]):
+                for j in range(i+1, self.ms[0]):
+                    m_ij = self.contact_dicts[frame].get((self.chroms[0], i, self.chroms[0], j), 0)
                     if m_ij > 0:
                         r_opt_contact = r_opt/m_ij**(1/3)
-                        self.sc_force.addBond(frame*self.m + i, frame*self.m + j, [r_opt_contact*0.8, r_opt_contact*1.2])
+                        self.sc_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + j, [r_opt_contact*0.8, r_opt_contact*1.2])
         self.sc_force_index = self.system.addForce(self.sc_force)
 
 
@@ -426,8 +428,8 @@ class MD_simulation:
         self.frame_force.addGlobalParameter('epsilon_ff', defaultValue=coef)
 
         for frame in range(self.n-1):
-            for locus in range(self.m):
-                self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus)
+            for locus in range(self.ms[0]):
+                self.frame_force.addBond(frame*self.ms[0] + locus, (frame+1)*self.ms[0] + locus)
         self.ff_force_index = self.system.addForce(self.frame_force)
 
 
@@ -477,7 +479,7 @@ class MD_simulation:
             row.cell("Genome assembly of the data")
             row = table.row()
             row.cell("chrom")
-            row.cell(str(self.chrom))
+            row.cell(str(self.chroms[0]))
             row.cell("Chromosome")
             row = table.row()
             row.cell("resolution")
@@ -489,7 +491,7 @@ class MD_simulation:
             row.cell("Number of frames/scHi-C maps")
             row = table.row()
             row.cell("m")
-            row.cell(str(self.m))
+            row.cell(str(self.ms[0]))
             row.cell("Number of beads in each structure/frame")
 
             row = table.row()
