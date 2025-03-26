@@ -28,7 +28,7 @@ class MD_simulation:
         Expects either heatmaps or contact_dfs to be not None.
         '''
         self.genome = main_config["genome"]
-        self.chroms = get_unique_chroms(contact_dfs)
+        self.chroms = [f'chr{i+1}' for i in range(20)] # get_unique_chroms(contact_dfs)
         print("Chromosome detected in the input data: ", self.chroms)
         self.chrom_sizes = [pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
                                     header=None, index_col=0, sep="\t").loc[chrom, 1] 
@@ -39,6 +39,10 @@ class MD_simulation:
         self.resolutions = [int(float(res.strip())*1_000_000) for res in str(sim_config['resolutions']).split(",")]
         self.resolutions.sort(reverse=True)
         self.ms = [int(np.ceil(chrom_size/self.resolutions[0])) for chrom_size in self.chrom_sizes]
+        self.m = int(np.sum(self.ms))
+        m_cumsum = np.cumsum(self.ms)
+        self.chrom_breaks = [m_cumsum[-1]*level + m_cumsum[i] - 1 for level in range(self.n) for i in range(len(self.ms))]
+        
         self.heatmaps = self.get_heatmaps_from_dfs(self.resolutions[0])
         self.contact_dicts = self.get_dicts_from_dfs(self.resolutions[0])
 
@@ -83,15 +87,20 @@ class MD_simulation:
         '''
         # Define initial structure
         print('Building initial structure...')
-        points_init_frame = self_avoiding_random_walk(n=self.ms[0], step=self.force_params["bb_opt_dist"], bead_radius=self.force_params["bb_opt_dist"]/2)
+        points_init_frames = [self_avoiding_random_walk(n=self.ms[i], 
+                                                      step=self.force_params["bb_opt_dist"], 
+                                                      bead_radius=self.force_params["bb_opt_dist"]/2)
+                                for i in range(len(self.ms))]
+        points_init_frames = align_self_avoiding_structures(points_init_frames)
+        points_init_frame =  np.vstack(tuple(points_init_frames))
         points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params["bb_opt_dist"] for i in range(self.n)]))
 
-        write_mmcif(points, self.output_path+'/struct_00_init.cif')
+        write_mmcif(points, self.output_path+'/struct_00_init.cif', breaks=self.chrom_breaks)
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
         for frame in range(self.n):
-            write_mmcif(points[(frame*self.ms[0]):((frame+1)*self.ms[0]), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
+            write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"), breaks=self.chrom_breaks)
 
         # Define System
         cif = PDBxFile(self.output_path+'/struct_00_init.cif')
@@ -148,7 +157,7 @@ class MD_simulation:
                 frames = self.get_frames_positions_npy()
                 points = np.vstack(tuple(frames))
                 cif_path = self.output_path+f"/struct_{str(i+1).zfill(2)}_res{resolution2text(res)}_ready.cif"
-                write_mmcif(points*10, cif_path)
+                write_mmcif(points*10, cif_path, breaks=self.chrom_breaks)
                 
 
     def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str) -> None:
@@ -278,15 +287,20 @@ class MD_simulation:
         # Interpolating structures:
         new_ms = [int(np.ceil(chrom_size / new_res)) for chrom_size in self.chrom_sizes]
         frames = self.get_frames_positions_npy()
-        frames_new = [extrapolate_points(frame, new_ms[0]) for frame in frames]
+        breaks = [-1] + self.chrom_breaks[:len(new_ms)]
+        frames_new = [np.vstack(tuple([extrapolate_points(frame[(breaks[i]+1):(breaks[i+1]+1),:], new_ms[i]) for i in range(len(new_ms))])) 
+                                      for frame in frames]
+
+        # Updating parameters:
+        self.ms = new_ms
+        self.m = int(np.sum(self.ms))
+        m_cumsum = np.cumsum(new_ms)
+        self.chrom_breaks = [m_cumsum[-1]*level + m_cumsum[i] - 1 for level in range(self.n) for i in range(len(new_ms))]
 
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
         cif_path = self.output_path+f"/struct_{str(index).zfill(2)}_res{resolution2text(new_res)}_init.cif"
-        write_mmcif(points*10, cif_path)
-
-        # Updating parameters:
-        self.ms = new_ms
+        write_mmcif(points*10, cif_path, breaks=self.chrom_breaks)
 
         if setup:
             # Define System
@@ -323,9 +337,9 @@ class MD_simulation:
         positions = self.state.getPositions()
         frames = []
         for frame in range(self.n):
-            x = [positions[i].x for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
-            y = [positions[i].y for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
-            z = [positions[i].z for i in range(frame*self.ms[0], (frame+1)*self.ms[0])]
+            x = [positions[i].x for i in range(frame*self.m, (frame+1)*self.m)]
+            y = [positions[i].y for i in range(frame*self.m, (frame+1)*self.m)]
+            z = [positions[i].z for i in range(frame*self.m, (frame+1)*self.m)]
             frame_positions = np.hstack((np.array(x).reshape((len(x), 1)), 
                                             np.array(y).reshape((len(y), 1)), 
                                             np.array(z).reshape((len(z), 1))))
@@ -340,7 +354,8 @@ class MD_simulation:
         for frame in range(self.n):
             frame_positions = frames[frame]
             write_mmcif(frame_positions, 
-                                os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))))
+                            os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))),
+                            breaks=self.chrom_breaks)
         if save_heatmaps:
             for frame in range(self.n):
                 np.save(os.path.join(path_npy, "res{}_frame{}.npy".format(resolution2text(resolution), str(frame).zfill(3))),
@@ -360,7 +375,7 @@ class MD_simulation:
         self.ev_force.addPerParticleParameter('frame')
         
         for frame in range(self.n):
-            for _ in range(self.ms[0]):
+            for _ in range(self.m):
                 self.ev_force.addParticle([frame])
         self.ev_force_index = self.system.addForce(self.ev_force)
 
@@ -381,8 +396,9 @@ class MD_simulation:
         self.bond_force.addGlobalParameter('epsilon_bb', defaultValue=coef)
 
         for frame in range(self.n):
-            for i in range(self.ms[0]-1):
-                self.bond_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + i + 1)
+            for i in range(self.m-1):
+                if i not in self.chrom_breaks:
+                    self.bond_force.addBond(frame*self.m + i, frame*self.m + i + 1)
         self.bb_force_index = self.system.addForce(self.bond_force)
 
 
@@ -401,14 +417,14 @@ class MD_simulation:
         self.sc_force.addGlobalParameter('d_sc', defaultValue=r_linear-r_opt*1.2)
         self.sc_force.addGlobalParameter('epsilon_sc', defaultValue=coef)
 
-        for frame in range(self.n):
-            for i in range(self.ms[0]):
-                for j in range(i+1, self.ms[0]):
-                    m_ij = self.contact_dicts[frame].get((self.chroms[0], i, self.chroms[0], j), 0)
-                    if m_ij > 0:
-                        r_opt_contact = r_opt/m_ij**(1/3)
-                        self.sc_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + j, [r_opt_contact*0.8, r_opt_contact*1.2])
-        self.sc_force_index = self.system.addForce(self.sc_force)
+        # for frame in range(self.n):
+        #     for i in range(self.ms[0]):
+        #         for j in range(i+1, self.ms[0]):
+        #             m_ij = self.contact_dicts[frame].get((self.chroms[0], i, self.chroms[0], j), 0)
+        #             if m_ij > 0:
+        #                 r_opt_contact = r_opt/m_ij**(1/3)
+        #                 self.sc_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + j, [r_opt_contact*0.8, r_opt_contact*1.2])
+        # self.sc_force_index = self.system.addForce(self.sc_force)
 
 
     def add_between_frame_forces(self, formula_type: str="harmonic", r_opt: float=1, r_linear: float=0, coef: float=1e3) -> None:
@@ -428,8 +444,8 @@ class MD_simulation:
         self.frame_force.addGlobalParameter('epsilon_ff', defaultValue=coef)
 
         for frame in range(self.n-1):
-            for locus in range(self.ms[0]):
-                self.frame_force.addBond(frame*self.ms[0] + locus, (frame+1)*self.ms[0] + locus)
+            for locus in range(self.m):
+                self.frame_force.addBond(frame*self.m + locus, (frame+1)*self.m + locus)
         self.ff_force_index = self.system.addForce(self.frame_force)
 
 

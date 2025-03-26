@@ -47,7 +47,7 @@ _struct_conn.ptnr2_label_atom_id
 """
 
 
-def write_mmcif(points,cif_file_name='LE_init_struct.cif'):
+def write_mmcif(points, cif_file_name, breaks=[]):
     atoms = ''
     n = len(points)
     for i in range(0,n):
@@ -63,8 +63,11 @@ def write_mmcif(points,cif_file_name='LE_init_struct.cif'):
                                                             x, y, z))
 
     connects = ''
+    j = 0
     for i in range(0,n-1):
-        connects += f'C{i+1} covale ALA A {i+1} CA ALA A {i+2} CA\n'
+        if i not in breaks:
+            connects += f'C{j} covale ALA A {i+1} CA ALA A {i+2} CA\n'
+            j += 1
 
     # Save files
     ## .pdb
@@ -107,7 +110,7 @@ def self_avoiding_random_walk(n: int, step: float = 1.0, bead_radius: float = 0.
     potential_new_step = [0, 0, 0]
     while True:
         points = [np.array([0, 0, 0])]
-        for _ in tqdm(range(n - 1)):
+        for _ in range(n - 1):
             step_is_ok = False
             trials = 0
             while not step_is_ok and trials < 1000:
@@ -126,6 +129,24 @@ def self_avoiding_random_walk(n: int, step: float = 1.0, bead_radius: float = 0.
         return points
 
 
+def align_self_avoiding_structures(structure_list: list) -> list:
+    """
+    Aligns structures from structure_list as that they do not overlap.
+    Returns same structures with altered positions.
+    """
+
+    new_structure_list = [structure - structure.min(axis=0) for structure in structure_list]
+    max_size = np.max([structure.max() for structure in new_structure_list])
+
+    cube_n = int(np.ceil(len(structure_list)**(1/3)))
+    # print(len(structure_list), cube_n, len(structure_list)**1/3)
+    for i, structure in enumerate(new_structure_list):
+        structure += np.array([max_size*(i%cube_n),
+                               max_size*((i//cube_n)%cube_n), 
+                               max_size*(i//cube_n**2)])
+    return new_structure_list
+
+    
 def extrapolate_points(points: np.array, n: int) -> np.array:
     """
     Extrapolates the points (m, 3) to new size (n, 3) preserving equal distances along the path created by points.
