@@ -28,7 +28,7 @@ class MD_simulation:
         Expects either heatmaps or contact_dfs to be not None.
         '''
         self.genome = main_config["genome"]
-        self.chroms = [f'chr{i+1}' for i in range(20)] # get_unique_chroms(contact_dfs)
+        self.chroms = get_unique_chroms(contact_dfs)
         print("Chromosome detected in the input data: ", self.chroms)
         self.chrom_sizes = [pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
                                     header=None, index_col=0, sep="\t").loc[chrom, 1] 

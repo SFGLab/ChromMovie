@@ -134,16 +134,15 @@ def align_self_avoiding_structures(structure_list: list) -> list:
     Aligns structures from structure_list as that they do not overlap.
     Returns same structures with altered positions.
     """
-
     new_structure_list = [structure - structure.min(axis=0) for structure in structure_list]
     max_size = np.max([structure.max() for structure in new_structure_list])
-
+    print([structure.shape for structure in new_structure_list])
     cube_n = int(np.ceil(len(structure_list)**(1/3)))
-    # print(len(structure_list), cube_n, len(structure_list)**1/3)
     for i, structure in enumerate(new_structure_list):
+        structure = structure.astype(np.float64)
         structure += np.array([max_size*(i%cube_n),
                                max_size*((i//cube_n)%cube_n), 
-                               max_size*(i//cube_n**2)])
+                               max_size*(i//cube_n**2)], dtype=np.float64)
     return new_structure_list
 
     
