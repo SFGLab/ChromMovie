@@ -417,14 +417,17 @@ class MD_simulation:
         self.sc_force.addGlobalParameter('d_sc', defaultValue=r_linear-r_opt*1.2)
         self.sc_force.addGlobalParameter('epsilon_sc', defaultValue=coef)
 
-        # for frame in range(self.n):
-        #     for i in range(self.ms[0]):
-        #         for j in range(i+1, self.ms[0]):
-        #             m_ij = self.contact_dicts[frame].get((self.chroms[0], i, self.chroms[0], j), 0)
-        #             if m_ij > 0:
-        #                 r_opt_contact = r_opt/m_ij**(1/3)
-        #                 self.sc_force.addBond(frame*self.ms[0] + i, frame*self.ms[0] + j, [r_opt_contact*0.8, r_opt_contact*1.2])
-        # self.sc_force_index = self.system.addForce(self.sc_force)
+        breaks = [-1] + self.chrom_breaks
+        for frame in range(self.n):
+            for key in self.contact_dicts[frame].keys():
+                chrom1, i, chrom2, j = key
+                m_ij = self.contact_dicts[frame][key]
+                id1 = breaks[self.chroms.index(chrom1)] + 1 + i
+                id2 = breaks[self.chroms.index(chrom2)] + 1 + j
+                
+                r_opt_contact = r_opt/m_ij**(1/3)
+                self.sc_force.addBond(frame*self.m + id1, frame*self.m + id2, [r_opt_contact*0.8, r_opt_contact*1.2])
+        self.sc_force_index = self.system.addForce(self.sc_force)
 
 
     def add_between_frame_forces(self, formula_type: str="harmonic", r_opt: float=1, r_linear: float=0, coef: float=1e3) -> None:
