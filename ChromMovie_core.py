@@ -192,8 +192,8 @@ class MD_simulation:
             # determining which contacts to keep
             to_keep = []
             for c in self.contact_dfs[frame].index:
-                bin1 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'x'], bin_edges) - 1))
-                bin2 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'y'], bin_edges) - 1))
+                bin1 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos1'], bin_edges) - 1))
+                bin2 = int(min(self.m-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos2'], bin_edges) - 1))
                 p1 = frames[frame][bin1, :]
                 p2 = frames[frame][bin2, :]
                 dist = np.sqrt(np.sum((p1 - p2)**2))
@@ -227,8 +227,8 @@ class MD_simulation:
 
         new_heatmaps = []
         for df in self.contact_dfs:
-            x_bins = np.digitize(df['x'], bin_edges) - 1
-            y_bins = np.digitize(df['y'], bin_edges) - 1
+            x_bins = np.digitize(df['pos1'], bin_edges) - 1
+            y_bins = np.digitize(df['pos2'], bin_edges) - 1
             bin_matrix = np.zeros((new_m, new_m), dtype=int)
             for x_bin, y_bin in zip(x_bins, y_bins):
                 if 0 <= x_bin < new_m and 0 <= y_bin < new_m:
@@ -251,11 +251,11 @@ class MD_simulation:
         new_dicts = []
         for df in self.contact_dfs:
             df_temp = df.copy()
-            df_temp["x_bin"] = np.digitize(df_temp['x'], bin_edges) - 1
-            df_temp["y_bin"] = np.digitize(df_temp['y'], bin_edges) - 1
-            df_temp = df_temp[['chrom', 'x_bin', 'y_bin']].groupby(['chrom', 'x_bin', 'y_bin']).size().reset_index(name='count')
+            df_temp["x_bin"] = np.digitize(df_temp['pos1'], bin_edges) - 1
+            df_temp["y_bin"] = np.digitize(df_temp['pos2'], bin_edges) - 1
+            df_temp = df_temp[['chrom1', 'x_bin', 'chrom2', 'y_bin']].groupby(['chrom1', 'x_bin', 'chrom2', 'y_bin']).size().reset_index(name='count')
             count_dict = {
-                (row.chrom, row.x_bin, row.y_bin): row.count
+                (row.chrom1, row.x_bin, row.chrom2, row.y_bin): row.count
                 for row in df_temp.itertuples(index=False)
             }
             new_dicts.append(count_dict)
@@ -402,7 +402,7 @@ class MD_simulation:
         for frame in range(self.n):
             for i in range(self.m):
                 for j in range(i+1, self.m):
-                    m_ij = self.contact_dicts[frame].get((self.chrom, i, j), 0)
+                    m_ij = self.contact_dicts[frame].get((self.chrom, i, self.chrom, j), 0)
                     if m_ij > 0:
                         r_opt_contact = r_opt/m_ij**(1/3)
                         self.sc_force.addBond(frame*self.m + i, frame*self.m + j, [r_opt_contact*0.8, r_opt_contact*1.2])

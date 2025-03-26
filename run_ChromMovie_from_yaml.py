@@ -179,17 +179,19 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
         os.makedirs(main_config["output"])
     shutil.copy(config_path, os.path.join(main_config["output"], os.path.basename(config_path)))
 
-    # Creating input numpy heatmaps
+    # Creating input pandas DataFrames with contact information:
     files = os.listdir(main_config["input"])
     files = [file for file in files if file.endswith(".csv")]
     files.sort()
     contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
     contact_dfs = [df[(df.iloc[:, 0]==main_config["chrom"]) & (df.iloc[:, 3]==main_config["chrom"])] for df in contact_dfs]
     for df in contact_dfs:
-        df["x"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
-        df["y"] = [int((s+e)/2) for s, e in zip(df.iloc[:,4], df.iloc[:,4])]
-        df["chrom"] = [main_config["chrom"]]*df.shape[0]
-    contact_dfs = [df[["chrom", "x", "y"]] for df in contact_dfs]
+        # df["chrom"] = [main_config["chrom"]]*df.shape[0]
+        df["chrom1"] = df.iloc[:, 0]
+        df["pos1"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
+        df["chrom2"] = df.iloc[:, 3]
+        df["pos2"] = [int((s+e)/2) for s, e in zip(df.iloc[:,4], df.iloc[:,4])]
+    contact_dfs = [df[["chrom1", "pos1", "chrom2", "pos2"]] for df in contact_dfs]
     
     # Saving the ground truth structure (if applicable):
     if main_config["input"] is None:
