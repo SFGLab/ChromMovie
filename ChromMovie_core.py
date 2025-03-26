@@ -38,6 +38,7 @@ class MD_simulation:
         self.resolutions.sort(reverse=True)
         self.m = int(np.ceil(self.chrom_size/self.resolutions[0]))
         self.heatmaps = self.get_heatmaps_from_dfs(self.resolutions[0])
+        self.contact_dicts = self.get_dicts_from_dfs(self.resolutions[0])
 
         if not os.path.exists(output_path):
             os.makedirs(output_path)
@@ -238,6 +239,30 @@ class MD_simulation:
         return new_heatmaps
 
 
+    def get_dicts_from_dfs(self, res: int) -> list:
+        """
+        Creates a list of dictionaries according to a given resolution based on contact information in self.contact_dfs.
+        The keys of the dictionaries are in the form (chrom, i, j), where i and j and the indices of bins in the resolution res.
+        The values of the dictionaries are the number of contacts in the specified bin.
+        """
+        new_m = int(np.ceil(self.chrom_size / res))
+        bin_edges = [i*res for i in range(new_m + 1)]
+
+        new_dicts = []
+        for df in self.contact_dfs:
+            df_temp = df.copy()
+            df_temp["x_bin"] = np.digitize(df_temp['x'], bin_edges) - 1
+            df_temp["y_bin"] = np.digitize(df_temp['y'], bin_edges) - 1
+            df_temp = df_temp[['chrom', 'x_bin', 'y_bin']].groupby(['chrom', 'x_bin', 'y_bin']).size().reset_index(name='count')
+            count_dict = {
+                (row.chrom, row.x_bin, row.y_bin): row.count
+                for row in df_temp.itertuples(index=False)
+            }
+            new_dicts.append(count_dict)
+
+        return new_dicts
+    
+
     def resolution_change(self, new_res: int, sim_step: int, index: int, setup: bool=False) -> None:
         """
         Prepares the system for the simulation in new resolution new_res.
@@ -246,6 +271,7 @@ class MD_simulation:
         """
         # Rescaling heatmaps:
         self.heatmaps = self.get_heatmaps_from_dfs(new_res)
+        self.contact_dicts = self.get_dicts_from_dfs(new_res)
 
         # Interpolating structures:
         new_m = int(np.ceil(self.chrom_size / new_res))
@@ -376,7 +402,7 @@ class MD_simulation:
         for frame in range(self.n):
             for i in range(self.m):
                 for j in range(i+1, self.m):
-                    m_ij = self.heatmaps[frame][i, j]
+                    m_ij = self.contact_dicts[frame].get((self.chrom, i, j), 0)
                     if m_ij > 0:
                         r_opt_contact = r_opt/m_ij**(1/3)
                         self.sc_force.addBond(frame*self.m + i, frame*self.m + j, [r_opt_contact*0.8, r_opt_contact*1.2])
