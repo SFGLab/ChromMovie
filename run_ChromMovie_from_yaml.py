@@ -184,23 +184,15 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
     files = [file for file in files if file.endswith(".csv")]
     files.sort()
     contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
-    contact_dfs = [df[df.iloc[:, 0].str.fullmatch(r'chr([1-9]|1[0-9]|2[0-2]|X|Y)')] for df in contact_dfs]
+    chrom_regex = r'chr([1-9]|1[0-9]|2[0-2]|X|Y)'
+    contact_dfs = [df[(df.iloc[:, 0].str.fullmatch(chrom_regex)) & (df.iloc[:, 3].str.fullmatch(chrom_regex))] for df in contact_dfs]
     for df in contact_dfs:
-        # df["chrom"] = [main_config["chrom"]]*df.shape[0]
         df["chrom1"] = df.iloc[:, 0]
         df["pos1"] = [int((s+e)/2) for s, e in zip(df.iloc[:,1], df.iloc[:,2])]
         df["chrom2"] = df.iloc[:, 3]
         df["pos2"] = [int((s+e)/2) for s, e in zip(df.iloc[:,4], df.iloc[:,4])]
     contact_dfs = [df[["chrom1", "pos1", "chrom2", "pos2"]] for df in contact_dfs]
     
-    # Saving the ground truth structure (if applicable):
-    if main_config["input"] is None:
-        path_init = os.path.join(main_config["output"], "ground_truth")
-        if os.path.exists(path_init): shutil.rmtree(path_init)
-        if not os.path.exists(path_init): os.makedirs(path_init)
-        for frame in range(main_config["n"]):
-            write_mmcif(structure_set[frame], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"))
-
     # Run ChromMovie
     md = MD_simulation(main_config=main_config, sim_config=sim_config, contact_dfs=contact_dfs, output_path=main_config["output"], 
                        N_steps=sim_config["N_steps"], burnin=sim_config["burnin"], MC_step=sim_config["MC_step"], 

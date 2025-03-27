@@ -47,9 +47,54 @@ _struct_conn.ptnr2_label_atom_id
 """
 
 
-def write_mmcif(points, cif_file_name, breaks=[]):
+# def write_mmcif(points, cif_file_name, breaks=[]):
+#     atoms = ''
+#     n = len(points)
+#     alphabet = ''.join(chr(i) for i in range(ord('A'), ord('Z') + 1)) + ''.join(chr(i) for i in range(ord('a'), ord('z') + 1))
+#     alphabet_id = 0
+#     chrom_id = 1#alphabet[alphabet_id]
+#     for i in range(0,n):
+#         x = points[i][0]
+#         y = points[i][1]
+#         try:
+#             z = points[i][2]
+#         except IndexError:
+#             z = 0.0
+#         # atoms += ('{0:} {1:} {2:} {3:} {4:} {5:} {6:} {7:} {8:} '
+#         #         '{9:} {10:.3f} {11:.3f} {12:.3f}\n'.format('ATOM', i+1, 'D', 'CA',\
+#         #                                                     '.', 'ALA', ''+str(chrom_id), 1, i+1, '?',\
+#         #                                                     x, y, z))
+#         atoms += f"ATOM {i+1} D CA CHR chr{str(chrom_id)} {i+1} {x:.3f} {y:.3f} {z:.3f}\n"
+#         if i in breaks:
+#             # alphabet_id += 1
+#             # chrom_id = alphabet[alphabet_id%len(alphabet)]
+#             chrom_id += 1
+
+#     connects = ''
+#     j = 0
+#     alphabet_id = 0
+#     chrom_id = 1#alphabet[alphabet_id]
+#     for i in range(0, n-1):
+#         if i not in breaks:
+#             connects += f'C{j} covale chr{str(chrom_id)} {i+1} chr{str(chrom_id)} {i+2}\n'
+#             j += 1
+#         else:
+#             # alphabet_id += 1
+#             # chrom_id = alphabet[alphabet_id%len(alphabet)]
+#             chrom_id += 1
+
+#     # Save files
+#     ## .pdb
+#     cif_file_content = mmcif_atomhead+atoms+mmcif_connecthead+connects
+
+#     with open(cif_file_name, 'w') as f:
+#         f.write(cif_file_content)
+
+
+def write_mmcif(points,cif_file_name='LE_init_struct.cif', breaks=[], chroms=['A']):
     atoms = ''
     n = len(points)
+    chrom_id = 0
     for i in range(0,n):
         x = points[i][0]
         y = points[i][1]
@@ -59,15 +104,25 @@ def write_mmcif(points, cif_file_name, breaks=[]):
             z = 0.0
         atoms += ('{0:} {1:} {2:} {3:} {4:} {5:} {6:}  {7:} {8:} '
                 '{9:} {10:.3f} {11:.3f} {12:.3f}\n'.format('ATOM', i+1, 'D', 'CA',\
-                                                            '.', 'ALA', 'A', 1, i+1, '?',\
+                                                            '.', 'CHR', chroms[chrom_id], 1, i+1, '?',\
                                                             x, y, z))
+        # atoms += f"ATOM {i+1} D CA . CHR chr{str(chrom_id)} {i+1} {x:.3f} {y:.3f} {z:.3f}\n"
+        if i in breaks:
+            chrom_id += 1
+            chrom_id = chrom_id%len(chroms)
 
     connects = ''
+    chrom_id = 0
     j = 0
     for i in range(0,n-1):
+        # chain1 = 'A' if i<50 else 'ewfewfew'
+        # chain2 = 'A' if i+1<50 else 'ewfewfew'
         if i not in breaks:
-            connects += f'C{j} covale ALA A {i+1} CA ALA A {i+2} CA\n'
+            connects += f'C{j} covale CHR {chroms[chrom_id]} {i+1} CA CHR {chroms[chrom_id]} {i+2} CA\n'
             j += 1
+        else:
+            chrom_id += 1
+            chrom_id = chrom_id%len(chroms)
 
     # Save files
     ## .pdb
@@ -136,7 +191,7 @@ def align_self_avoiding_structures(structure_list: list) -> list:
     """
     new_structure_list = [structure - structure.min(axis=0) for structure in structure_list]
     max_size = np.max([structure.max() for structure in new_structure_list])
-    print([structure.shape for structure in new_structure_list])
+    # print([structure.shape for structure in new_structure_list])
     cube_n = int(np.ceil(len(structure_list)**(1/3)))
     for i, structure in enumerate(new_structure_list):
         structure = structure.astype(np.float64)
@@ -246,5 +301,7 @@ def get_unique_chroms(contact_dfs: list) -> list:
     for df in contact_dfs:
         values = pd.concat([df['chrom1'], df['chrom2']])
         unique_values.update(values.unique())
-    return list(unique_values)
+    unique_values = list(unique_values)
+    unique_values.sort()
+    return unique_values
 

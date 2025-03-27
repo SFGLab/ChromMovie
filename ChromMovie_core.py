@@ -95,12 +95,13 @@ class MD_simulation:
         points_init_frame =  np.vstack(tuple(points_init_frames))
         points = np.vstack(tuple([points_init_frame+i*0.001*self.force_params["bb_opt_dist"] for i in range(self.n)]))
 
-        write_mmcif(points, self.output_path+'/struct_00_init.cif', breaks=self.chrom_breaks)
+        write_mmcif(points, self.output_path+'/struct_00_init.cif', breaks=self.chrom_breaks, chroms=self.chroms)
         path_init = os.path.join(self.output_path, "init")
         if os.path.exists(path_init): shutil.rmtree(path_init)
         if not os.path.exists(path_init): os.makedirs(path_init)
         for frame in range(self.n):
-            write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"), breaks=self.chrom_breaks)
+            write_mmcif(points[(frame*self.m):((frame+1)*self.m), :], os.path.join(path_init, f"frame_{str(frame).zfill(3)}.cif"), 
+                        breaks=self.chrom_breaks, chroms=self.chroms)
 
         # Define System
         cif = PDBxFile(self.output_path+'/struct_00_init.cif')
@@ -157,7 +158,7 @@ class MD_simulation:
                 frames = self.get_frames_positions_npy()
                 points = np.vstack(tuple(frames))
                 cif_path = self.output_path+f"/struct_{str(i+1).zfill(2)}_res{resolution2text(res)}_ready.cif"
-                write_mmcif(points*10, cif_path, breaks=self.chrom_breaks)
+                write_mmcif(points*10, cif_path, breaks=self.chrom_breaks, chroms=self.chroms)
                 
 
     def simulate_resolution(self, resolution: int, sim_step: int, frame_path_npy: str, frame_path_cif: str) -> None:
@@ -300,7 +301,7 @@ class MD_simulation:
         # Saving new starting point:
         points = np.vstack(tuple(frames_new))
         cif_path = self.output_path+f"/struct_{str(index).zfill(2)}_res{resolution2text(new_res)}_init.cif"
-        write_mmcif(points*10, cif_path, breaks=self.chrom_breaks)
+        write_mmcif(points*10, cif_path, breaks=self.chrom_breaks, chroms=self.chroms)
 
         if setup:
             # Define System
@@ -355,7 +356,7 @@ class MD_simulation:
             frame_positions = frames[frame]
             write_mmcif(frame_positions, 
                             os.path.join(path_cif, "step{}_frame{}.cif".format(str(step).zfill(3), str(frame).zfill(3))),
-                            breaks=self.chrom_breaks)
+                            breaks=self.chrom_breaks, chroms=self.chroms)
         if save_heatmaps:
             for frame in range(self.n):
                 np.save(os.path.join(path_npy, "res{}_frame{}.npy".format(resolution2text(resolution), str(frame).zfill(3))),
