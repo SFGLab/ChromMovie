@@ -6,6 +6,7 @@ numpy==1.26.4
 OpenMM==8.1.1
 pandas==2.2.3
 Pillow==11.1.0
+pyBigWig==0.3.24
 PyYAML==6.0.2
 scipy==1.15.1
 tqdm==4.66.5

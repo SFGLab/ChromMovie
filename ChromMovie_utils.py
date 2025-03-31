@@ -6,6 +6,9 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from openmm.app import PDBxFile
+import pyBigWig
+import os
+
 
 ############# Creation of mmcif and psf files #############
 mmcif_atomhead = """data_nucsim
@@ -58,7 +61,7 @@ def write_mmcif(points, cif_file_name='struct.cif', breaks=[], chroms=['A']):
             z = points[i][2]
         except IndexError:
             z = 0.0
-        atoms += f"ATOM {i+1} D CA . CHR {chroms[chrom_id]} 1 {i+1} ? {x:.3f} {y:.3f} {z:.3f}\n"
+        atoms += f"ATOM {i+1} D CA . CHR {chroms[chrom_id]} {i+1} {i+1} ? {x:.3f} {y:.3f} {z:.3f}\n"
         if i in breaks:
             chrom_id += 1
             chrom_id = chrom_id%len(chroms)
@@ -254,4 +257,68 @@ def get_unique_chroms(contact_dfs: list) -> list:
     unique_values = list(unique_values)
     unique_values.sort()
     return unique_values
+
+
+def parse_cif_line(line):
+    if not line.startswith("ATOM"):
+        return None
+
+    parts = line.strip().split()
+    atom_id = int(parts[1])
+    chromosome = parts[6]
+    x, y, z = map(float, parts[-3:])
+
+    return {
+        'atom_id': atom_id,
+        'chromosome': chromosome,
+        'position': (x, y, z)
+    }
+
+
+def color_compartments(path_cif: str, path_bw: str, resolution: int, path_out:str):
+    """
+    Creates a .cmd file specified by path_out, to use in UCSF Chimera 
+    for coloring of the residues of the structure in path_cif
+    based on the compartment information from .bw file from path_bw
+    """
+    # Read bw compartment file:
+    bw = pyBigWig.open(path_bw)
+
+    # Read cif structure file:
+    with open(path_cif, 'r') as file:
+        atoms = [parse_cif_line(line) for line in file if line.startswith("ATOM")]
+    
+    # Create commands for Chimera:
+    colors = []
+    curr_atom_id = -1
+    curr_chrom = atoms[0]["chromosome"]
+    for atom in atoms:
+        if atom["chromosome"] != curr_chrom:
+            curr_chrom = atom["chromosome"]
+            curr_atom_id = 0
+        else:
+            curr_atom_id += 1
+
+        coord = int(curr_atom_id*resolution)
+        comp_score = bw.values(atom["chromosome"], coord, coord+1)[0]
+        atom_id = atom['atom_id']
+        colors.append(("blue" if comp_score < 0 else "red" if comp_score > 0 else "grey", atom_id, atom['chromosome']))
+
+    chimera_commands = ["color grey\n"]
+    curr_color = colors[0]
+    curr_end = colors[0][1]
+    for color in colors[1:]:
+        if color[0] == curr_color[0] and color[2] == curr_color[2]:
+            curr_end = color[1]
+        else:
+            chimera_commands.append(f"color {curr_color[0]} :{curr_color[1]}-{curr_end}.{curr_color[2]}\n")
+            curr_color = color
+            curr_end = curr_color[1]
+
+    # Writing file:
+    if os.path.exists(path_out):
+        os.remove(path_out)
+    with open(path_out, "a") as f:
+        for line in chimera_commands:
+            f.write(line)
 
