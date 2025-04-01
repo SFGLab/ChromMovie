@@ -8,6 +8,7 @@ from tqdm import tqdm
 from openmm.app import PDBxFile
 import pyBigWig
 import os
+import seaborn as sns
 
 
 ############# Creation of mmcif and psf files #############
@@ -273,6 +274,35 @@ def parse_cif_line(line):
         'chromosome': chromosome,
         'position': (x, y, z)
     }
+
+
+def color_chrom_territories(path_cif: str, path_out:str):
+    """
+    Creates a .cmd file specified by path_out, to use in UCSF Chimera 
+    for coloring of the residues of the structure in path_cif
+    based on the compartment information from .bw file from path_bw
+    """
+    # Read cif structure file:
+    with open(path_cif, 'r') as file:
+        atoms = [parse_cif_line(line) for line in file if line.startswith("ATOM")]
+    
+    # Define color palette:
+    palette = sns.color_palette("tab10", 23)
+    palette = [f"{r:.2f},{g:.2f},{b:.2f}" for r,g,b in palette]
+    n = len(palette)
+
+    # Create commands for Chimera:
+    chroms = []
+    for atom in atoms:
+        chroms.append(atom["chromosome"])
+    chroms = np.unique(chroms)
+
+    # Writing file:
+    if os.path.exists(path_out):
+        os.remove(path_out)
+    with open(path_out, "a") as f:
+        for i, chrom in enumerate(chroms):
+            f.write(f"col {palette[i%n]} :.{chrom}\n")
 
 
 def color_compartments(path_cif: str, path_bw: str, resolution: int, path_out:str):
