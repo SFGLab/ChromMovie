@@ -304,7 +304,7 @@ def color_compartments(path_cif: str, path_bw: str, resolution: int, path_out:st
         atom_id = atom['atom_id']
         colors.append(("blue" if comp_score < 0 else "red" if comp_score > 0 else "grey", atom_id, atom['chromosome']))
 
-    chimera_commands = ["color grey\n"]
+    chimera_commands = []
     curr_color = colors[0]
     curr_end = colors[0][1]
     for color in colors[1:]:
@@ -319,6 +319,17 @@ def color_compartments(path_cif: str, path_bw: str, resolution: int, path_out:st
     if os.path.exists(path_out):
         os.remove(path_out)
     with open(path_out, "a") as f:
-        for line in chimera_commands:
-            f.write(line)
+        f.write("color red\n")
+
+        blue_command = "color blue "
+        for com in chimera_commands:
+            if "blue" in com:
+                blue_command += com.split("blue ")[-1][:-1]+","
+        f.write(blue_command[:-1] + "\n")
+
+        grey_command = "color grey "
+        for com in chimera_commands:
+            if "grey" in com:
+                grey_command += com.split("grey ")[-1][:-1]+","
+        f.write(grey_command[:-1] + "\n")
 
