@@ -145,14 +145,18 @@ def align_self_avoiding_structures(structure_list: list) -> list:
     """
     new_structure_list = [structure - structure.min(axis=0) for structure in structure_list]
     max_size = np.max([structure.max() for structure in new_structure_list])
-    # print([structure.shape for structure in new_structure_list])
-    cube_n = int(np.ceil(len(structure_list)**(1/3)))
+    n = len(structure_list)
+    cube_n = int(np.ceil(n**(1/3)))
+    random_order = list(np.random.choice(n, n, replace=False))
+    final_structure_list = []
     for i, structure in enumerate(new_structure_list):
+        j = random_order.index(i)
         structure = structure.astype(np.float64)
-        structure += np.array([max_size*(i%cube_n),
-                               max_size*((i//cube_n)%cube_n), 
-                               max_size*(i//cube_n**2)], dtype=np.float64)
-    return new_structure_list
+        structure += np.array([max_size*(j%cube_n),
+                               max_size*((j//cube_n)%cube_n), 
+                               max_size*(j//cube_n**2)], dtype=np.float64)
+        final_structure_list.append(structure)
+    return final_structure_list
 
     
 def extrapolate_points(points: np.array, n: int) -> np.array:
