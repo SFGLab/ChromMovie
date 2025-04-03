@@ -51,7 +51,7 @@ class MD_simulation:
         self.output_path = output_path
 
         self.N_steps = N_steps
-        self.step, self.burnin = MC_step, burnin//MC_step
+        self.step, self.burnin = MC_step, burnin
         self.platform = platform
         
         self.user_force_params = force_params
@@ -166,7 +166,7 @@ class MD_simulation:
         start = time.time()
         for i in range(1, self.N_steps):
             self.simulation.step(sim_step)
-            if i%self.step == 0 and i > self.burnin*self.step:
+            if i%self.step == 0 and i >= self.burnin:
                 self.save_state(frame_path_npy, frame_path_cif, resolution, step=i, save_heatmaps=False)
             # updating the repulsive and frame force strength:
             if self.user_force_params["ev_coef_evol"] or self.user_force_params["bb_coef_evol"] or \
