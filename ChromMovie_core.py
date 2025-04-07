@@ -31,7 +31,7 @@ class MD_simulation:
         self.chroms = get_unique_chroms(contact_dfs)
         print("Chromosome detected in the input data: ", self.chroms)
         self.chrom_sizes = [pd.read_csv(f"chrom_sizes/{self.genome}.txt", 
-                                    header=None, index_col=0, sep="\t").loc[chrom, 1] 
+                                    header=None, index_col=0, sep="\t").loc[chrom.split("-")[0], 1] 
                                     for chrom in self.chroms]
         self.contact_dfs = contact_dfs
         

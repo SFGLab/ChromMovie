@@ -184,7 +184,7 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
     files = [file for file in files if file.endswith(".csv")]
     files.sort()
     contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
-    chrom_regex = r'chr([1-9]|1[0-9]|2[0-2]|X|Y)'
+    chrom_regex = r'chr([1-9]|1[0-9]|2[0-2]|X|Y)(?:-P|-M)?'
     contact_dfs = [df[(df.iloc[:, 0].str.fullmatch(chrom_regex)) & (df.iloc[:, 3].str.fullmatch(chrom_regex))] for df in contact_dfs]
     for df in contact_dfs:
         df["chrom1"] = df.iloc[:, 0]
