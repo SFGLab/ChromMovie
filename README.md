@@ -10,7 +10,15 @@ ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3
 
 ## Installation
 
-ChromMovie software was primarily tested on Unix-based systems and with Python version 3.10.0. Before running ChromMovie please install the required packages listed in `requirements.txt`.
+ChromMovie software was primarily tested on Unix-based systems and with Python version `3.10.14`. For optimal performance and compatibility, we recommend setting up a dedicated Python environment for running ChromMovie simulations. One convenient way to do this is by using `pyenv`:
+
+```bash
+pyenv install -v 3.10.14
+pyenv virtualenv 3.10.14 ChromMovie_env
+pyenv activate ChromMovie_env
+```
+
+All required packages for ChromMovie can be installed from the `requirements.txt` file provided in the repository:
 
 ```bash
 pip install -r requirements.txt
