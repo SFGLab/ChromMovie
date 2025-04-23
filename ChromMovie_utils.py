@@ -367,3 +367,68 @@ def color_compartments(path_cif: str, path_bw: str, resolution: int, path_out:st
                 grey_command += com.split("grey ")[-1][:-1]+","
         f.write(grey_command[:-1] + "\n")
 
+
+def color_rnaseq(path_cif: str, path_tsv: str, resolution: int, path_out:str):
+    """
+    Creates a .cmd file specified by path_out, to use in UCSF Chimera 
+    for coloring of the residues of the structure in path_cif
+    based on the RNA-seq information from .tsv file from path_bw
+    """
+    # Read bw compartment file:
+    df = pd.read_csv(path_tsv, header=None, sep="\t")
+    df.columns = ["chrom", "pos"]
+
+    # Read cif structure file:
+    with open(path_cif, 'r') as file:
+        atoms = [parse_cif_line(line) for line in file if line.startswith("ATOM")]
+    
+    # Create commands for Chimera:
+    colors = []
+    curr_atom_id = -1
+    curr_chrom = atoms[0]["chromosome"]
+    curr_df = df[df["chrom"]==curr_chrom]
+    curr_hist = np.histogram(curr_df["pos"], bins=np.arange(0, 10_000_000_000, resolution))[0]
+    curr_hist = [v if v>0 else 1 for v in curr_hist]
+    curr_thresh = np.histogram(np.log10(curr_hist), bins=4)[1]
+    for atom in atoms:
+        if atom["chromosome"] != curr_chrom:
+            curr_chrom = atom["chromosome"]
+            curr_df = df[df["chrom"]==curr_chrom]
+            curr_hist = np.histogram(curr_df["pos"], bins=np.arange(0, 10_000_000_000, resolution))[0]
+            curr_hist = [v if v>0 else 1 for v in curr_hist]
+            curr_thresh = np.histogram(np.log10(curr_hist), bins=4)[1]
+            curr_atom_id = 0
+        else:
+            curr_atom_id += 1
+
+        comp_score = np.log10(curr_hist[curr_atom_id])
+        atom_id = atom['atom_id']
+        colors.append(("blue" if comp_score <= 0 else \
+                       "green" if comp_score <= curr_thresh[1] else \
+                        "yellow" if comp_score <= curr_thresh[2] else \
+                        "orange" if comp_score <= curr_thresh[3] else "red", atom_id, atom['chromosome']))
+
+    chimera_commands = []
+    curr_color = colors[0]
+    curr_end = colors[0][1]
+    for color in colors[1:]:
+        if color[0] == curr_color[0] and color[2] == curr_color[2]:
+            curr_end = color[1]
+        else:
+            chimera_commands.append(f"color {curr_color[0]} :{curr_color[1]}-{curr_end}.{curr_color[2]}\n")
+            curr_color = color
+            curr_end = curr_color[1]
+
+    # Writing file:
+    if os.path.exists(path_out):
+        os.remove(path_out)
+    with open(path_out, "a") as f:
+        f.write("color red\n")
+        for color in ["orange", "yellow", "green", "blue"]:
+            color_command = f"color {color} "
+            for com in chimera_commands:
+                if color in com:
+                    color_command += com.split(f"{color} ")[-1][:-1]+","
+            f.write(color_command[:-1] + "\n")
+
+            
