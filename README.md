@@ -104,6 +104,18 @@ List of parameter default values recommended by the authors and their descriptio
 |ff_coef        |float          |100.0          |Frame force (FF) force coefficient|
 |ff_coef_evol   |bool           |False          |Enable or disable the changing FF coefficient value.|
 
+## Citation
+
+```
+@article {Banecki2025,
+	author = {Banecki, Krzysztof H. and Chai, Haoxi and Ruan, Yijun and Plewczynski, Dariusz},
+	title = {ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Hi-C Maps},
+	year = {2025},
+	doi = {10.1101/2025.05.16.654550},
+	journal = {bioRxiv}
+}
+```
+
 ## Copyrights
 
 The software is freely distributed under the GNU GENERAL PUBLIC LICENSE (GPL-3.0).
