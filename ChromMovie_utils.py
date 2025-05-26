@@ -260,7 +260,9 @@ def get_unique_chroms(contact_dfs: list) -> list:
         values = pd.concat([df['chrom1'], df['chrom2']])
         unique_values.update(values.unique())
     unique_values = list(unique_values)
-    unique_values.sort()
+    chrom_values = [val.split("chrom")[-1].split("chr")[-1].split("-")[0] for val in unique_values]
+    chrom_values = [int(val) if val.isdigit() else 100 if val=="X" else 101 if val=="Y" else 102 if val=="M" else 103 for val in chrom_values]
+    unique_values = [x for _,x in sorted(zip(chrom_values, unique_values))]
     return unique_values
 
 
