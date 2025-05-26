@@ -30,11 +30,6 @@ def validate_input_yaml_parameters(m_config: dict, s_config: dict, f_config: dic
     if m_config["genome"] not in [file.split(".")[0] for file in os.listdir("chrom_sizes")]:
         raise ValueError(f"Cannot find chromosome sizes for genome assembly: "+str(m_config["genome"]))
 
-    chrom_sizes = pd.read_csv(f"chrom_sizes/"+str(m_config["genome"])+".txt", 
-                                    header=None, index_col=0, sep="\t")
-    if m_config["chrom"] not in chrom_sizes.index:
-        raise ValueError(f"Cannot find chromosome size for the chromosome: "+str(m_config["chrom"]))
-
     if not isinstance(m_config["pdf_report"], (bool)):
         raise TypeError("Invalid 'pdf_report' parameter type. Expected 'bool', got "+str(type(m_config["input"])))
     

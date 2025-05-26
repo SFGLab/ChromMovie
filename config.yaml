@@ -5,8 +5,6 @@ descriptions:
     output: Output folder for storing simulation results
     genome: 'Genome assembly of the input data. Currently supported assemblies: hg19,
       hg38, mm10, GRCm39.'
-    chrom: Chromosome to be modeled. The input files are going to be filtered for
-      intra-chromosomal contacts within this chromosome.
     pdf_report: Whether to save the simulation diagnostics in a pdf format.
     remove_problematic: A flag indicating whether at each resolution round problematic
       contacts that the simulation was unable to resolve, should be removed.
@@ -78,33 +76,32 @@ general:
   input: examples/example1_cell_cycle
   output: results
   genome: hg38
-  chrom: chr1
-  pdf_report: true
+  pdf_report: false
   remove_problematic: false
 simulation:
   platform: OpenCL
   resolutions: 5,2
   N_steps: 100
-  burnin: 0
+  burnin: 99
   MC_step: 1
   sim_step: 20
 forcefield:
   ev_formula: harmonic
   ev_min_dist: 2.0
-  ev_coef: 50.0
-  ev_coef_evol: false
+  ev_coef: 100.0
+  ev_coef_evol: true
   bb_formula: harmonic
   bb_opt_dist: 1.0
   bb_lin_thresh: 2.0
-  bb_coef: 1000.0
+  bb_coef: 100.0
   bb_coef_evol: false
   sc_formula: harmonic
   sc_opt_dist: 1.0
-  sc_lin_thresh: 2.0
+  sc_lin_thresh: 1.5
   sc_coef: 100.0
   sc_coef_evol: false
   ff_formula: harmonic
   ff_opt_dist: 1.0
-  ff_lin_thresh: 2.0
+  ff_lin_thresh: 1.5
   ff_coef: 100.0
   ff_coef_evol: false

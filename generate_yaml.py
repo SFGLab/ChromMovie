@@ -1,4 +1,6 @@
 import yaml
+import numpy as np
+
 
 # Default configuration with descriptions
 CONFIG_PARAMETERS = {
@@ -14,10 +16,6 @@ CONFIG_PARAMETERS = {
         'genome': {
             'value': 'mm10',
             'description': 'Genome assembly of the input data. Currently supported assemblies: hg19, hg38, mm10, GRCm39.'
-        },
-        'chrom': {
-            'value': 'chr1',
-            'description': 'Chromosome to be modeled. The input files are going to be filtered for intra-chromosomal contacts within this chromosome.'
         },
         'pdf_report': {
             'value': True,
@@ -182,16 +180,43 @@ if __name__ == "__main__":
     # Example of user-specified parameters:
     user_specified_config = {
         'general': {
-            'input': "examples/example1_cell_cycle",
-            'output': 'results',
-            'chrom': 'chr1'
+            'input': "examples/example3_cell_cycle_sc",
+            'output': 'results/tests/test_00',
+            'genome': 'mm10',
+            'pdf_report': False
         },
         'simulation': {
-            'ev_min_dist': 2
+            'resolutions': '5,2,0.5,0.2,0.1',
+            'burnin': 99
         },
         'forcefield': {
-            
+            'ev_coef': 100.0,
+            'ev_coef_evol': True,
+            'bb_coef': 100.0,
+            'sc_lin_thresh': 1.5,
+            'sc_coef': 50.0,
+            'ff_lin_thresh': 1.5,
+            'ff_coef': 50.0
         }
     }
     
-    generate_yaml_config('config.yaml', user_specified_config)
+    #preparing configs for frame force study:
+    # ff_coefs = np.linspace(-3, 3, 100)
+    # ff_coefs = [10**v for v in ff_coefs]
+    # for i, ff_coef in enumerate(ff_coefs):
+    #     user_specified_config['forcefield']['ff_coef'] = round(float(ff_coef), 6)
+    #     user_specified_config['general']['output'] = f'results/tests/test_{str(i).zfill(3)}'
+    #     generate_yaml_config(f'data/cell_cycle/configs/config_{str(i).zfill(3)}.yaml', user_specified_config)
+    
+    #preparing configs for frame force study:
+    # n = 15
+    # for i in range(n):
+    #     user_specified_config['general']['input'] = f"examples/example4_{str(i+1).zfill(2)}"
+    #     user_specified_config['general']['output'] = f'results/tests_benchmark/test_{str(i).zfill(2)}'
+    #     generate_yaml_config(f'data/cell_cycle/configs/config_{str(i).zfill(3)}.yaml', user_specified_config)
+    
+    for i in [1,5,10,25,50,100,200]:
+        user_specified_config['general']['input'] = f"examples/example5_{str(i).zfill(3)}"
+        user_specified_config['general']['output'] = f'results/tests_benchmark2/test_{str(i).zfill(3)}'
+        generate_yaml_config(f'data/cell_cycle/configs/config_{str(i).zfill(3)}.yaml', user_specified_config)
+

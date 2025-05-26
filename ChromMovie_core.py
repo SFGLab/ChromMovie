@@ -187,7 +187,7 @@ class MD_simulation:
             self.plot_reporter(resolution=resolution)
         end = time.time()
         elapsed = end - start
-        print(f'MD round finished in {elapsed/60:.2f} minutes.\n')
+        print(f'MD round finished in {elapsed/60:.5f} minutes.\n')
 
 
     def remove_problematic_contacts(self, res: int, thresh: float=1.2) -> None:
@@ -254,7 +254,7 @@ class MD_simulation:
     def get_dicts_from_dfs(self, res: int) -> list:
         """
         Creates a list of dictionaries according to a given resolution based on contact information in self.contact_dfs.
-        The keys of the dictionaries are in the form (chrom, i, j), where i and j and the indices of bins in the resolution res.
+        The keys of the dictionaries are in the form (chrom1, i, chrom2, j), where i and j and the indices of bins in the resolution res.
         The values of the dictionaries are the number of contacts in the specified bin.
         """
         new_ms = [int(np.ceil(chrom_size / res)) for chrom_size in self.chrom_sizes]
