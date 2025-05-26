@@ -488,7 +488,7 @@ class MD_simulation:
         pdf.cell(0, font_section, text="Simulation parameters:", new_x="LMARGIN", new_y="NEXT")
 
         pdf.set_font('helvetica', size=font_table)
-        with pdf.table(col_widths=(40, 30, 120)) as table:
+        with pdf.table(col_widths=(25, 55, 110)) as table:
             row = table.row()
             row.cell("Parameter")
             row.cell("value")
@@ -497,10 +497,6 @@ class MD_simulation:
             row.cell("genome")
             row.cell(str(self.genome))
             row.cell("Genome assembly of the data")
-            row = table.row()
-            row.cell("chrom")
-            row.cell(str(self.chroms[0]))
-            row.cell("Chromosome")
             row = table.row()
             row.cell("resolution")
             row.cell(resolution2text(resolution))
@@ -511,8 +507,8 @@ class MD_simulation:
             row.cell("Number of frames/scHi-C maps")
             row = table.row()
             row.cell("m")
-            row.cell(str(self.ms[0]))
-            row.cell("Number of beads in each structure/frame")
+            row.cell(", ".join([chrom+": "+str(m) for chrom,m in zip(self.chroms, self.ms)]))
+            row.cell("Number of beads in each structure/frame per chromosome (only chromosomes detected in the data are modeled)")
 
             row = table.row()
             row.cell("ev_min_dist")
