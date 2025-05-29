@@ -28,7 +28,7 @@ We recommend running ChromMovie on a GPU for optimal performance. To do so, plea
 
 ## Input Data
 
-The input to ChromMovie consists of the ordered list of single cell interaction data. The data should reflect the cellular process of interest (cell cycle, cell maturation, etc.). The data are expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see `examples`). Each file should contain the single cell contacts in `.csv` format with or without the header. First few rows of an example file may look like this:
+The input to ChromMovie consists of a number of separate `.csv` files, each representing the interaction data for a particular single cell (or step in the cellular process). The data should reflect the cellular process of interest (cell cycle, cell maturation, etc.). The data is expected to be placed in a separate folder `input`. The files are expected to be in alphabetical order (see `examples`). Each file should contain the single cell contacts in `.csv` format with or without the header. First few rows of an example file may look like this:
 
 ```text
 chrom1,start1,end1,chrom2,start2,end2
@@ -53,7 +53,7 @@ python3 -m ChromMovie -i config.yaml
 
 ## Output
 
-Simulation results will be saved in the folder `output`. A typical output of ChromMovie simulation consists of the following data:
+Simulation results will be saved in the folder `output`. The output of ChromMovie simulation consists of the following data:
 
 * `config.yaml` - Configuration file used for this particular simulation. This is a copy of the input configuration file.
 * `energy.csv` - File containing diagnostic information about Energy and Temperature of the simulation.
