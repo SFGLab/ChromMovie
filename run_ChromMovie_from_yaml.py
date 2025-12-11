@@ -149,10 +149,22 @@ def heatmap2df(heatmap: np.ndarray, chrom: str, chrom_size: int) -> pd.DataFrame
     return df
 
 
+def identify_delimiter(path):
+    """Function that specifies what separator/delimiter parameter to use automatically. Helps with reading csv files with different delimiters (;,\t)"""
+    with open(path, 'r') as f:
+        first_line = f.readline()
+    if "\t" in first_line: return "\t"
+    elif ";" in first_line: return ";"
+    elif "," in first_line: return ","
+    elif "|" in first_line: return "|"
+    else:
+        raise Exception("Could not identify delimiter of the input files. Please make sure to use either tab-delimited, comma, or semicolon delimited csv files.")
+
+
 def identify_header(path, n=10, th=0.9):
     """Function that specifies what header parameter to use automatically. Helps with reading csv files with header or without"""
-    df1 = pd.read_csv(path, header='infer', nrows=n)
-    df2 = pd.read_csv(path, header=None, nrows=n)
+    df1 = pd.read_csv(path, header='infer', nrows=n, sep=identify_delimiter(path))
+    df2 = pd.read_csv(path, header=None, nrows=n, sep=identify_delimiter(path))
     sim = (df1.dtypes.values == df2.dtypes.values).mean()
     return 'infer' if sim < th else None
 
@@ -178,7 +190,13 @@ def ChromMovie_from_yaml(config_path: str='config.yaml'):
     files = os.listdir(main_config["input"])
     files = [file for file in files if file.endswith(".csv")]
     files.sort()
-    contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), header=identify_header(os.path.join(main_config["input"], file))) for file in files]
+    data_types = {
+        0: str, 1: int, 2: int,
+        3: str, 4: int, 5: int}
+    contact_dfs = [pd.read_csv(os.path.join(main_config["input"], file), \
+                               header=identify_header(os.path.join(main_config["input"], file)), \
+                               sep=identify_delimiter(os.path.join(main_config["input"], file)), \
+                               dtype=data_types) for file in files]
     chrom_regex = r'chr([1-9]|1[0-9]|2[0-2]|X|Y|W|Z)(?:-P|-M)?'
     contact_dfs = [df[(df.iloc[:, 0].str.fullmatch(chrom_regex)) & (df.iloc[:, 3].str.fullmatch(chrom_regex))] for df in contact_dfs]
     for df in contact_dfs:
