@@ -201,29 +201,27 @@ class MD_simulation:
         all_contacts = []
         removed = []
         for frame in tqdm(range(self.n)):
-            # determining which contacts to keep
-            to_keep = []
-            for c in self.contact_dfs[frame].index:
+            # determining which contacts to remove
+            max_removed = int(0.2*self.contact_dfs[frame].shape[0])
+            to_remove = []
+            contact_indexes = list(self.contact_dfs[frame].index)
+            np.random.shuffle(contact_indexes)
+            for c in contact_indexes:
                 bin1 = int(min(self.ms[0]-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos1'], bin_edges) - 1))
                 bin2 = int(min(self.ms[0]-1, np.digitize(self.contact_dfs[frame].loc[c, 'pos2'], bin_edges) - 1))
                 p1 = frames[frame][bin1, :]
                 p2 = frames[frame][bin2, :]
                 dist = np.sqrt(np.sum((p1 - p2)**2))
-                to_keep.append(dist <= thresh*self.force_params["sc_opt_dist"])
-            
-            # prevent from removing too many contacts
-            n_contacts = np.sum(to_keep)
-            min_n_contacts = int(0.8*len(to_keep))
-            if n_contacts < min_n_contacts: 
-                num_to_flip = min_n_contacts - n_contacts
-                true_indices = np.where(to_keep)[0]
-                flip_indices = np.random.choice(true_indices, size=num_to_flip, replace=False)
-                to_keep[flip_indices] = False
+                if dist > 2*thresh*self.force_params["sc_opt_dist"]:
+                    to_remove.append(c)
+                    # prevent from removing too many contacts
+                    if len(to_remove) >= max_removed:
+                        break
 
             # saving new contact data
-            self.contact_dfs[frame] = self.contact_dfs[frame][np.array(to_keep)]
-            removed.append(len(to_keep) - np.sum(to_keep))
-            all_contacts.append(len(to_keep))
+            self.contact_dfs[frame] = self.contact_dfs[frame].drop(to_remove)
+            removed.append(len(to_remove))
+            all_contacts.append(len(contact_indexes))
         
         m_cont_removed = np.mean(removed)
         average_percent = m_cont_removed/np.mean(all_contacts)*100
