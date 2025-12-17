@@ -721,19 +721,24 @@ class MD_simulation:
         ax1.legend()
 
         ax1 = ax[1][1]
-        df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), 0)
         ax1.set_title("Mean frame force violation")
-        ax1.set_ylabel("")
-        ax1.set_xlabel("simulation step")
-        for frame in range(self.n-1):
-            df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
-            ax1.plot(df_temp["step"], df_temp["violation"], label=f"frames {frame}~{frame+1}" if frame==0 or frame==self.n-2 else "_nolegend_", c=cmap(frame/(self.n-1)))
-        ax1.axhline(0, linestyle='--', c="black")
-        ax1.axhline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
-        y_lim = ax1.get_ylim()
-        ax1.axhspan(self.force_params["ff_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
-        ax1.set_ylim(y_lim)
-        ax1.legend()
+        if self.n > 1:
+            df_ff = get_ff_violation(os.path.join(self.output_path, "frames_cif"), 0)
+            ax1.set_ylabel("")
+            ax1.set_xlabel("simulation step")
+            for frame in range(self.n-1):
+                df_temp = df_ff[df_ff["frame"]==frame].sort_values("step")
+                ax1.plot(df_temp["step"], df_temp["violation"], label=f"frames {frame}~{frame+1}" if frame==0 or frame==self.n-2 else "_nolegend_", c=cmap(frame/(self.n-1)))
+            ax1.axhline(0, linestyle='--', c="black")
+            ax1.axhline(self.force_params["ff_opt_dist"]*1.2, linestyle='--', c="black")
+            y_lim = ax1.get_ylim()
+            ax1.axhspan(self.force_params["ff_opt_dist"]*1.2, y_lim[1]+100, color='red', alpha=0.2)
+            ax1.set_ylim(y_lim)
+            ax1.legend()
+        else:
+            ax1.set_xlabel("Not applicable (only one frame detected)")
+            ax1.set_xticks([])
+            ax1.set_yticks([])
 
         plt.tight_layout()
         canvas = FigureCanvas(fig)
