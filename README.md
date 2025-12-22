@@ -8,6 +8,11 @@ ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3
 
 ![k562_chr12](https://github.com/user-attachments/assets/1a07ff34-edd8-4749-a73b-455ed3017c15)
 
+Before using ChromMovie, see the installation guide below or Colab notebook:
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]
+(https://colab.research.google.com/github/SFGLab/ChromMovie/blob/main/notebooks/ChromMovie_tutorial.ipynb)
+
 ## Installation
 
 ChromMovie software was primarily tested on Unix-based systems and with Python version `3.10.14`. For optimal performance and compatibility, we recommend setting up a dedicated Python environment for running ChromMovie simulations. One convenient way to do this is by using `pyenv`:
