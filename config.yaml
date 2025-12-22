@@ -79,7 +79,7 @@ general:
   pdf_report: false
   remove_problematic: false
 simulation:
-  platform: OpenCL
+  platform: CPU
   resolutions: 5,2
   N_steps: 100
   burnin: 99
