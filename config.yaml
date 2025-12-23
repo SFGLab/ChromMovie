@@ -13,7 +13,7 @@ descriptions:
     resolutions: 'Resolutions to be used for hierarchical modeling. Expected to be
       in the form of comma separated integer of float numbers in the units of Mb.'
     N_steps: 'Number of simulation steps to take at every resolution.'
-    burnin: 'Number of simulation steps before starting collecting the simulatin diagnostic
+    burnin: 'Number of simulation steps before starting collecting the simulation diagnostic
       data.'
     MC_step: 'Simulation diagnostic data is going to be collected every MC_step.'
     sim_step: 'The simulation step of Langevin integrator.'
