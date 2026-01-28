@@ -1,17 +1,17 @@
 # ChromMovie
 
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-10.1101/2025.05.16.654550-b31b1b.svg)](https://doi.org/10.1101/2025.05.16.654550 )
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SFGLab/ChromMovie/blob/main/notebooks/ChromMovie_tutorial.ipynb)
+[![License](https://img.shields.io/github/license/SFGLab/ChromMovie)](LICENSE)
+
 ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Hi-C Maps.
 
 ![ChromMovie_idea](https://github.com/user-attachments/assets/3a4af3e4-7db9-45cc-8eb6-a5c4696ae5f7)
 
-ChromMovie is an Openmm based molecular dynamics simulation model for modeling 3D chromatin structure evolution up to the chromosome level and at a single cell resolution. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
+ChromMovie is an OpenMM based molecular dynamics simulation model for modeling 3D chromatin structure evolution up to the chromosome level and at a single cell resolution. Employs hierarchical modeling scheme and can be used with either CPU or GPU acceleration.
 
 ![k562_chr12](https://github.com/user-attachments/assets/1a07ff34-edd8-4749-a73b-455ed3017c15)
 
-Before using ChromMovie, see the installation guide below or Colab notebook:
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]
-(https://colab.research.google.com/github/SFGLab/ChromMovie/blob/main/notebooks/ChromMovie_tutorial.ipynb)
 
 ## Installation
 
