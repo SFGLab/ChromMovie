@@ -4,7 +4,7 @@
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/SFGLab/ChromMovie/blob/main/notebooks/ChromMovie_tutorial.ipynb)
 [![License](https://img.shields.io/github/license/SFGLab/ChromMovie)](LICENSE)
 
-ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Hi-C Maps.
+ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Interaction Maps.
 
 ![ChromMovie_idea](https://github.com/user-attachments/assets/3a4af3e4-7db9-45cc-8eb6-a5c4696ae5f7)
 
@@ -111,12 +111,12 @@ List of parameter default values recommended by the authors and their descriptio
 ## Citation
 
 ```
-@article {Banecki2025,
+@article {Banecki2026,
 	author = {Banecki, Krzysztof H. and Chai, Haoxi and Ruan, Yijun and Plewczynski, Dariusz},
-	title = {ChromMovie: A Molecular Dynamics Approach for Simultaneous Modeling of Chromatin Conformation Changes from Multiple Single-Cell Hi-C Maps},
-	year = {2025},
-	doi = {10.1101/2025.05.16.654550},
-	journal = {bioRxiv}
+	title = {Simultaneous modeling of chromatin conformation changes from multiple single-cell interaction maps with ChromMovie},
+	year = {2026},
+	doi = {10.1101/gr.280985.125},
+	journal = {Genome Research}
 }
 ```
 
