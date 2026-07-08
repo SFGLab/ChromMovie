@@ -114,6 +114,9 @@ List of parameter default values recommended by the authors and their descriptio
 @article {Banecki2026,
 	author = {Banecki, Krzysztof H. and Chai, Haoxi and Ruan, Yijun and Plewczynski, Dariusz},
 	title = {Simultaneous modeling of chromatin conformation changes from multiple single-cell interaction maps with ChromMovie},
+	volume = {36},
+	number = {5},
+	pages = {992-1004},
 	year = {2026},
 	doi = {10.1101/gr.280985.125},
 	journal = {Genome Research}
